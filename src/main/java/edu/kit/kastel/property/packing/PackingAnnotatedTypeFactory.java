@@ -377,11 +377,11 @@ public class PackingAnnotatedTypeFactory
         return FBCBOTTOM;
     }
 
-    public boolean isDependableField(ExpressionTree tree) {
+    public static boolean isDependableField(ExpressionTree tree) {
         return isDependableField(TreeUtils.elementFromUse(tree));
     }
 
-    public boolean isDependableField(Element el) {
+    public static boolean isDependableField(Element el) {
         return AnnotationUtils.containsSameByClass(el.asType().getAnnotationMirrors(), Dependable.class);
     }
 

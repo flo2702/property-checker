@@ -124,8 +124,8 @@ public class PackingVisitor
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
             // If an object is initialized up to its most specific known subclass and no function with a receiver type
-            // @UnderInitialization was called, the object is @Initialized
-            if (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled()) {
+            // @UnderInitialization was called and no dependable field assigned, the object is @Initialized
+            if (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled() || atypeFactory.getRegularExitStore(methodTree).isDependableFieldAssigned()) {
                 return false;
             }
             if (TreeUtils.isConstructor(methodTree)) {

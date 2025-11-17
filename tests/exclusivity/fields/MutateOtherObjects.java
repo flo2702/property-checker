@@ -10,6 +10,7 @@ class MutateOtherObjects {
     @Dependable @Unique Foo foo;
 
     @NonMonotonic
+    // :: eror: packing.postcondition.not.satisfied
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         this.foo = new Foo();
 

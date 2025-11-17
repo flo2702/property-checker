@@ -11,7 +11,7 @@ import org.checkerframework.dataflow.qual.*;
 public final class Customer {
     
     public final String name;
-    public final @Interval(min="14", max="150") int age;
+    public final @Dependable @Interval(min="14", max="150") int age;
 
     @JMLClause("ensures this.name == name && this.age == age;")
     @JMLClause("assignable \\nothing;") @Pure

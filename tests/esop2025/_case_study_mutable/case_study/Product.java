@@ -12,7 +12,7 @@ public final class Product {
     
     public final String title;
     public final @Interval(min="0", max="2147483647") int price;
-    public final @Interval(min="0", max="18") int ageRestriction;
+    public final @Dependable @Interval(min="0", max="18") int ageRestriction;
 
     @JMLClause("ensures this.title == title && this.price == price && this.ageRestriction == ageRestriction;")
     @JMLClause("assignable \\nothing;") @Pure

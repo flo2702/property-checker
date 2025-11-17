@@ -30,8 +30,6 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.lang.reflect.Modifier;
-import javax.lang.model.element.*;
-import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Set;
 
@@ -154,6 +152,16 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
             return new RegularTransferResult<>(result.getResultValue(), result.getRegularStore(), exceptionalStores);
         }*/
 
+        return result;
+    }
+
+    @Override
+    public TransferResult<CFValue, PackingStore> visitAssignment(AssignmentNode n, TransferInput<CFValue, PackingStore> in) {
+        TransferResult<CFValue, PackingStore> result = super.visitAssignment(n, in);
+        if (n.getTarget() instanceof FieldAccessNode fa && PackingAnnotatedTypeFactory.isDependableField(fa.getElement())) {
+            result.getRegularStore().setDependableFieldAssigned(true);
+            result.storeChanged();
+        }
         return result;
     }
 

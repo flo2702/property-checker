@@ -10,7 +10,7 @@ import org.checkerframework.dataflow.qual.*;
 
 public final class Order {
     
-    public final int witness;
+    public final @Dependable int witness;
     public final @AgedOver(age="witness") Customer customer;
     public final @AllowedFor(age="witness") Product product;
 

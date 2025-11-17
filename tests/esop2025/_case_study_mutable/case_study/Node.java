@@ -16,10 +16,10 @@ import org.checkerframework.dataflow.qual.*;
 @JMLClause("public invariant this.tail == null || \\invariant_for(this.tail);")
 public final class Node {
 
-    public @MaybeAliased Order head;
+    public @Dependable @MaybeAliased Order head;
 
     // See the comment about SortedList::first in SortedList class.
-    public @Unique @Nullable @Sorted Node tail;
+    public @Dependable @Unique @Nullable @Sorted Node tail;
 
     @JMLClause("requires \\invariant_for(tail);")
     @JMLClause("requires head.product.price <= tail.head.product.price;")

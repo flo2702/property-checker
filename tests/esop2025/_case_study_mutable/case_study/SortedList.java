@@ -24,7 +24,7 @@ public final class SortedList {
     // dependency contracts very awkward to prove.
     // So doing the sortedness as a property type and everything else
     // (well-formedness of list structure, general framing) as JML is easiest.
-    public @Unique @Nullable @Sorted Node first;
+    public @Dependable @Unique @Nullable @Sorted Node first;
 
     @JMLClause("ensures this.first == null;")
     @JMLClause("ensures \\fresh(this.footprint);")

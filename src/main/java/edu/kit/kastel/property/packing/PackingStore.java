@@ -13,6 +13,7 @@ import javax.lang.model.element.ExecutableElement;
 public class PackingStore extends InitializationAbstractStore<CFValue, PackingStore> {
 
     private boolean helperFunctionCalled = false;
+    private boolean dependableFieldAssigned = false;
 
     public PackingStore(PackingAnalysis analysis, boolean sequentialSemantics) {
         super(analysis, sequentialSemantics);
@@ -96,5 +97,13 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
 
     public void setHelperFunctionCalled(boolean helperFunctionCalled) {
         this.helperFunctionCalled = helperFunctionCalled;
+    }
+
+    public boolean isDependableFieldAssigned() {
+        return dependableFieldAssigned;
+    }
+
+    public void setDependableFieldAssigned(boolean dependableFieldAssigned) {
+        this.dependableFieldAssigned = dependableFieldAssigned;
     }
 }

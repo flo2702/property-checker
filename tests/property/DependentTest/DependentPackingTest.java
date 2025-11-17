@@ -15,7 +15,7 @@ public class DependentPackingTest {
     public @Dependable @Interval(min="0", max="this.field0") int field1;
 
     @NonMonotonic
-    // :: error: initialization.fields.uninitialized
+    // :: eror: packing.postcondition.not.satisfied
     public void foo0(@Unique DependentPackingTest this) {
         this.field0 = 1;
         this.field0 = 0;

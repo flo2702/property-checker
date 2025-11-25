@@ -14,7 +14,7 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package tests.esop2025;
+package tests.case_study;
 
 import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
@@ -25,23 +25,24 @@ import java.util.List;
 
 @SuppressWarnings("nls")
 @Ignore
-public class CaseStudyMutableTest extends PropertyCheckerTest {
-    public CaseStudyMutableTest(List<File> testFiles) {
+public class CaseStudyMutableVerifastTest extends PropertyCheckerTest {
+    public CaseStudyMutableVerifastTest(List<File> testFiles) {
         super(
                 testFiles,
-                        ",tests/esop2025/_case_study_mutable/lattice_agedover"
-                		+ ",tests/esop2025/_case_study_mutable/lattice_allowedfor"
-                        + ",tests/esop2025/_case_study_mutable/lattice_interval"
-                        + ",tests/esop2025/_case_study_mutable/lattice_empty"
-                        + ",tests/esop2025/_case_study_mutable/lattice_sign"
-                        + ",tests/esop2025/_case_study_mutable/lattice_sorted"
-                        + ",tests/esop2025/_case_study_mutable/lattice_inv",
-                "tests/esop2025/_case_study_mutable/",
-                "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
+                        ",tests/case_study_verifast/_case_study_mutable/lattice_agedover"
+                		+ ",tests/case_study_verifast/_case_study_mutable/lattice_allowedfor"
+                        + ",tests/case_study_verifast/_case_study_mutable/lattice_interval"
+                        + ",tests/case_study_verifast/_case_study_mutable/lattice_empty"
+                        + ",tests/case_study_verifast/_case_study_mutable/lattice_sign"
+                        + ",tests/case_study_verifast/_case_study_mutable/lattice_sorted"
+                        + ",tests/case_study_verifast/_case_study_mutable/lattice_inv",
+                "tests/case_study_verifast/_case_study_mutable/",
+                "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",
+                "-APropertyChecker_outputLang=verifast");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"esop2025/_case_study_mutable"};
+        return new String[] {"case_study_verifast/_case_study_mutable"};
     }
 }

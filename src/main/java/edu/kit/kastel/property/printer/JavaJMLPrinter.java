@@ -73,9 +73,7 @@ import static com.sun.tools.javac.code.Flags.*;
 import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
 
 @SuppressWarnings("nls")
-public class JavaJMLPrinter extends PrettyPrinter {
-
-    public static boolean TRANSLATION_RAW = false;
+public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
     public static String printCheckable(Checkable chk, PropertyAnnotation pa, String subject) {
         String cond = chk.getCondition();
@@ -97,109 +95,11 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return '(' + cond + ')';
     }
 
-    protected List<LatticeVisitor.Result> results;
-    protected PropertyAnnotatedTypeFactory propertyFactory;
-    protected ExclusivityAnnotatedTypeFactory exclFactory;
-    
-    protected int assertions = 0;
-    protected int assumptions = 0;
-    protected int methodCallPreconditions = 0;
-    protected int freeMethodCallPreconditions = 0;
-    protected int methodCallPostconditions = 0;
-    protected int freeMethodCallPostconditions = 0;
-
-    protected int tempVarNum = 0;
-    protected JCClassDecl enclClass;
-    protected JCMethodDecl enclMethod;
-    protected boolean enclBlock = false;
-
     public JavaJMLPrinter(
             List<LatticeVisitor.Result> results,
             PropertyChecker propertyChecker,
             BufferedWriter out) {
-        super(out, true);
-        this.results = results;
-        this.propertyFactory = propertyChecker.getPropertyFactory();
-        this.exclFactory = propertyFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
-
-        String translationOnlyOption = propertyChecker.getOption(Config.TRANSLATION_ONLY_OPTION);
-        
-        if (Objects.equals(translationOnlyOption, "true")) {
-        	TRANSLATION_RAW = true;
-        }
-    }
-    
-    public int getAssertions() {
-		return assertions;
-	}
-    
-    public int getAssumptions() {
-		return assumptions;
-	}
-    
-    public int getMethodCallPreconditions() {
-		return methodCallPreconditions;
-	}
-    
-    public int getFreeMethodCallPreconditions() {
-		return freeMethodCallPreconditions;
-	}
-
-    public int getMethodCallPostconditions() {
-        return methodCallPostconditions;
-    }
-
-    public int getFreeMethodCallPostconditions() {
-        return freeMethodCallPostconditions;
-    }
-
-    @Override
-    public void visitImport(JCImport tree) {
-        String str = tree.qualid.toString();
-    	if (str.startsWith("edu.kit.kastel.property")
-                || str.startsWith("org.checkerframework.")) {
-    		return;
-    	}
-    	
-    	super.visitImport(tree);
-    }
-
-    @Override
-    public void printTypeParameters(com.sun.tools.javac.util.List<JCTypeParameter> trees) throws IOException {
-        if (propertyFactory.getChecker().shouldKeepGenerics()) {
-            super.printTypeParameters(trees);
-        }
-    }
-
-    @Override
-    public void visitReference(JCTree.JCMemberReference tree) {
-        try {
-            this.printExpr(tree.expr);
-            this.print("::");
-            if (tree.typeargs != null && propertyFactory.getChecker().shouldKeepGenerics()) {
-                this.print('<');
-                this.printExprs(tree.typeargs);
-                this.print('>');
-            }
-
-            this.print(tree.getMode() == MemberReferenceTree.ReferenceMode.INVOKE ? tree.name : "new");
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    @Override
-    public void visitTypeApply(JCTree.JCTypeApply tree) {
-        try {
-            this.printExpr(tree.clazz);
-            if (propertyFactory.getChecker().shouldKeepGenerics()) {
-                this.print('<');
-                this.printExprs(tree.arguments);
-                this.print('>');
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        super(results, propertyChecker, out);
     }
 
     @Override
@@ -245,7 +145,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 println(" {");
                 indent();
 
-                //TODO Add this to Object class in KeY JavaRedux
+                // This is not added here, but to the Object class in KeY's JavaRedux
                 /*println();
                 printlnAligned("//@ public ghost Class packed = Object.class;");
                 println();*/
@@ -366,24 +266,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    @Override
-    public void visitReturn(JCReturn tree) {
-        // Print inferred packing statements
-        try {
-            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
-            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
-            if (unpackFrame != null) {
-                printUnpackStatement(enclMethod, unpackFrame.toString());
-            } else if (packFrame != null) {
-                printPackStatement(enclMethod, packFrame.toString());
-            }
-        } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
-        }
-
-        super.visitReturn(tree);
     }
 
     @Override
@@ -520,7 +402,9 @@ public class JavaJMLPrinter extends PrettyPrinter {
                         jmlContract.addClause(new Condition(wt, ConditionLocation.POSTCONDITION, pa, "this"));
                     }
                     if (!wt) {
-                        ++assertions;
+                        ++methodCallPostconditions;
+                    } else {
+                        ++freeMethodCallPostconditions;
                     }
                 }
             } else {
@@ -763,27 +647,22 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
-	@Override
-    public void visitBlock(JCBlock tree) {
-        boolean prevEnclBlock = enclBlock;
-        if (enclMethod != null || enclBlock) {
-            enclBlock = true;
-            try {
-                printBlock(tree.stats);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
-        enclBlock = prevEnclBlock;
-    }
-
     @Override
-    public void visitModifiers(JCModifiers mods) {
+    public void visitReturn(JCReturn tree) {
+        // Print inferred packing statements
         try {
-            printFlags(mods.flags);
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
+            if (unpackFrame != null) {
+                printUnpackStatement(enclMethod, unpackFrame.toString());
+            } else if (packFrame != null) {
+                printPackStatement(enclMethod, packFrame.toString());
+            }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new java.io.UncheckedIOException(e);
         }
+
+        super.visitReturn(tree);
     }
 
     @Override
@@ -1188,11 +1067,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
-    @Override
-    public void printTypeAnnotations(com.sun.tools.javac.util.List<JCAnnotation> trees) throws IOException {
-        // do nothing
-    }
-
     protected void printStaticInitializers() throws IOException {
         List<Union<StatementTree, VariableTree, BlockTree>> inits =
                 results.get(0).getStaticInitializers(enclClass.sym.getQualifiedName().toString());
@@ -1345,30 +1219,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
                 }
             }
         }
-
-        for (LatticeVisitor.Result wellTypedness : results) {
-            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
-            Lattice lattice = wellTypedness.getLattice();
-
-            AnnotatedExecutableType methodType = factory.getAnnotatedType(tree);
-            List<AnnotatedTypeMirror> requiredParamTypes = methodType.getParameterTypes();
-
-            if (methodType.getReceiverType() != null) {
-                AnnotatedTypeMirror requiredReceiverType = methodType.getReceiverType();
-                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
-                if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
-                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, "this"));
-                }
-            }
-
-            for (int i = 0; i < requiredParamTypes.size(); ++i) {
-                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredParamTypes.get(i));
-                if (!pa.getAnnotationType().isTrivial()) {
-                    jmlContract.addClause(new Condition(ConditionType.ASSUMPTION, ConditionLocation.POSTCONDITION, pa, paramNames.get(i)));
-                }
-            }
-        }
-
 
         for (LatticeVisitor.Result wellTypedness : results) {
             GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
@@ -1531,57 +1381,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
-    protected void printlnAligned(Condition cond) {
-        PropertyAnnotationType pat = cond.pa.getAnnotationType();
-
-        if (pat.isTrivial()) {
-            return;
-        }
-
-        printlnAligned(cond.toString());
-    }
-
-    protected void printlnAligned(String s) {
-        for (String line : s.lines().collect(Collectors.toList())) {
-            try {
-                align();
-                println(line);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        }
-    }
-
-    protected void println(Condition cond) throws IOException {
-        PropertyAnnotationType pat = cond.pa.getAnnotationType();
-
-        if (pat.isTrivial()) {
-            return;
-        }
-
-        println(cond.toString());
-    }
-
-    protected void println(String s) throws IOException {
-        print(s + StringUtils.LF);
-    }
-
-    protected void print() throws IOException {
-        print(StringUtils.EMPTY);
-    }
-
-    protected boolean isAbstract(JCClassDecl tree) {
-        return (tree.mods.flags & ABSTRACT) != 0;
-    }
-
-    protected boolean isInterface(JCClassDecl tree) {
-        return (tree.mods.flags & INTERFACE) != 0;
-    }
-
-    protected boolean isConstructor(JCMethodDecl tree) {
-        return tree.name == tree.name.table.names.init;
-    }
-
     protected String trampolineName(String methodName) {
         if (methodName.equals("<init>")) {
             methodName = "INIT";
@@ -1598,70 +1397,10 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return String.format("%s_%s", paramName, wellTypedness.getLattice().getIdent());
     }
 
-    protected String unannotatedTypeName(JCTree tree) {
-        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
-        return unannotatedTypeName(type, false);
-    }
-
-    protected String unannotatedNullableTypeName(JCTree tree) {
-        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
-        return unannotatedTypeName(type, true);
-    }
-
-    protected String unannotatedTypeNameLhs(JCTree tree) {
-        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
-        return unannotatedTypeName(type, false);
-    }
-
-    protected String unannotatedNullableTypeNameLhs(JCTree tree) {
-        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
-        return unannotatedTypeName(type, true);
-    }
-
-    protected String unannotatedTypeName(AnnotatedTypeMirror type) {
-        return unannotatedTypeName(type, false);
-    }
-
-    protected String unannotatedTypeName(AnnotatedTypeMirror type, boolean nullable) {
-        return unannotatedTypeName(type.getUnderlyingType(), nullable);
-    }
-
-    protected String unannotatedTypeName(TypeMirror type, boolean nullable) {
-        if (type instanceof AnnotatedExecutableType) {
-            throw new IllegalArgumentException();
-        }
-
-        String unannotatedTypeName;
-        if ((type instanceof Type.TypeVar || type instanceof Type.DelegatedType)
-                && !propertyFactory.getChecker().shouldKeepGenerics()) {
-            unannotatedTypeName = "Object";
-        } else if (type instanceof Type.ArrayType arrType) {
-            unannotatedTypeName = unannotatedTypeName(arrType.elemtype, false) + "[]";
-        } else {
-            unannotatedTypeName = ((Type) type).asElement().toString();;
-        }
-
-        return (!nullable || type.getKind() == TypeKind.VOID || type.getKind().isPrimitive()
-        		? "" : "/*@nullable@*/ ")
-                + unannotatedTypeName;
-    }
-
     protected String tempVarName() {
         return String.format("temp%d", tempVarNum++);
     }
 
-    public Name getEnclClassName() {
-        return enclClass.sym.getQualifiedName();
-    }
-
-    public Name getEnclMethodName() {
-        return enclMethod.sym.getQualifiedName();
-    }
-
-    public AnnotationMirror getTop(GenericAnnotatedTypeFactory<?,?,?,?> factory) {
-        return factory.getQualifierHierarchy().getTopAnnotations().first();
-    }
-    
     @SuppressWarnings("unchecked")
     protected List<String> getJMLClauseValues(Element element) {
         AnnotationMirror jmlClauses = propertyFactory.getDeclAnnotation(element, JMLClauses.class);
@@ -1698,6 +1437,36 @@ public class JavaJMLPrinter extends PrettyPrinter {
         } else {
             return Collections.singletonList(AnnotationUtils.getElementValue(jmlClause, "value", String.class, true));
         }
+    }
+
+    protected String getPackedCondition(AnnotationMirror packingType, String varName) {
+        if (propertyFactory.isInitialized(packingType)) {
+            return String.format("%s.packed == \\typeof(%s)", varName, varName);
+        } else if (propertyFactory.isUnderInitialization(packingType)) {
+            return String.format("%s.packed == %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
+        } else {
+            return String.format("%s.packed <: %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
+        }
+    }
+
+    protected void printlnAligned(JavaJMLPrinter.Condition cond) {
+        PropertyAnnotationType pat = cond.pa.getAnnotationType();
+
+        if (pat.isTrivial()) {
+            return;
+        }
+
+        printlnAligned(cond.toString());
+    }
+
+    protected void println(JavaJMLPrinter.Condition cond) throws IOException {
+        PropertyAnnotationType pat = cond.pa.getAnnotationType();
+
+        if (pat.isTrivial()) {
+            return;
+        }
+
+        println(cond.toString());
     }
 
     protected List<Condition> getConditions(JCAssign tree, String subject, ConditionLocation conditionLocation) {
@@ -1746,28 +1515,6 @@ public class JavaJMLPrinter extends PrettyPrinter {
         return Streams.concat(wellTyped.stream(), malTyped.stream()).collect(Collectors.toList());
     }
 
-    protected Object getVisibilityString(EnumSet<Flag> flagSet) {
-		if (flagSet.contains(Flag.PUBLIC)) {
-			return "public";
-		} else if (flagSet.contains(Flag.PROTECTED)) {
-			return "protected";
-		} else if (flagSet.contains(Flag.PRIVATE)) {
-			return "private";
-		} else {
-			return "";
-		}
-	}
-
-    protected String getPackedCondition(AnnotationMirror packingType, String varName) {
-        if (propertyFactory.isInitialized(packingType)) {
-            return String.format("%s.packed == \\typeof(%s)", varName, varName);
-        } else if (propertyFactory.isUnderInitialization(packingType)) {
-            return String.format("%s.packed == %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
-        } else {
-            return String.format("%s.packed <: %s", varName, propertyFactory.getTypeFrameFromAnnotation(packingType));
-        }
-    }
-
     public enum ConditionLocation {
         ASSERTION, PRECONDITION, POSTCONDITION, INVARIANT_INSTANCE, INVARIANT_STATIC;
     }
@@ -1776,7 +1523,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         ASSERTION, ASSUMPTION;
     }
 
-    public class Condition {
+    public static class Condition {
 
         protected ConditionLocation conditionLocation;
         protected ConditionType conditionType;
@@ -1897,7 +1644,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
 
-    public class AssertionSequence {
+    public static class AssertionSequence {
 
         private List<String> assertions = new ArrayList<>();
         private List<String> assumptions = new ArrayList<>();
@@ -1933,7 +1680,7 @@ public class JavaJMLPrinter extends PrettyPrinter {
         }
     }
     
-    public class JMLContract {
+    public static class JMLContract {
         
         private EnumSet<Flag> flags;
 

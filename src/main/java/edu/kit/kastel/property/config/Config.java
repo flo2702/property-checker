@@ -32,6 +32,10 @@ public final class Config {
     public static final String OUTPUT_DIR_OPTION = "outDir";
     public static final String SHOULD_NOT_USE_TRAMPOLINE_OPTION = "shouldNotUseTrampoline";
 
+    public static final String OUTPUT_LANG_OPTION = "outputLang";
+    public static final String OUTPUT_LANG_JML = "jml";
+    public static final String OUTPUT_LANG_VERIFAST = "verifast";
+
     public static final String TRANSLATION_ONLY_OPTION = "translationOnly";
     public static final String NO_EXCLUSITIVY_OPTION = "noExclusivity";
     public static final String NO_INFER_UNPACK_OPTION = "noInferUnpack";

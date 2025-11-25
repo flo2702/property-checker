@@ -19,10 +19,12 @@ package edu.kit.kastel.property.checker;
 import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
+import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingStore;
 import edu.kit.kastel.property.packing.PackingVisitor;
 import edu.kit.kastel.property.printer.JavaJMLPrinter;
+import edu.kit.kastel.property.printer.JavaVerifastPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.smt.SmtCompiler;
 import edu.kit.kastel.property.smt.SmtExpression;
@@ -70,6 +72,7 @@ public final class PropertyVisitor extends PackingVisitor {
         this.path = path;
 
         PropertyChecker checker = (PropertyChecker) this.checker;
+        String outputLangOption = checker.getOption(Config.OUTPUT_LANG_OPTION, Config.OUTPUT_LANG_JML);
 
         File file = Paths.get(checker.getOutputDir(), checker.getRelativeSourceFileName()).toFile();
         file.getParentFile().mkdirs();
@@ -78,6 +81,7 @@ public final class PropertyVisitor extends PackingVisitor {
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
             mendTypeErrors(results);
+
             // TODO: fix reporting here (results is never empty, even if there are no proof obligations left)
             if (results.isEmpty()) {
                 PrettyPrinter printer = new PrettyPrinter(out, true);
@@ -85,7 +89,7 @@ public final class PropertyVisitor extends PackingVisitor {
                 System.out.println(String.format(
                         "Wrote file %s with no remaining proof obligations",
                         checker.getRelativeSourceFileName()));
-            } else {
+            } else if (outputLangOption.equals(Config.OUTPUT_LANG_JML)) {
                 JavaJMLPrinter printer = new JavaJMLPrinter(results, checker, out);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
@@ -96,6 +100,19 @@ public final class PropertyVisitor extends PackingVisitor {
                         printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
                 // LatticeVisitors are reused, but result contents are compilation-unit-specific, so we reset them
                 results.forEach(LatticeVisitor.Result::clear);
+            } else if (outputLangOption.equals(Config.OUTPUT_LANG_VERIFAST)) {
+                JavaVerifastPrinter printer = new JavaVerifastPrinter(results, checker, out);
+                printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
+                System.out.println(String.format(
+                        "Wrote file %s with: \n\t%d assertions (to be proven in JML)\n\t%d assumptions (proven by checker)\n\t%d non-free method preconditions (to be proven in JML)\n\t%d free method preconditions (proven by checker)\n\t%d non-free method postconditions (to be proven in JML)\n\t%d free method postconditions (proven by checker)",
+                        checker.getRelativeSourceFileName(),
+                        printer.getAssertions(), printer.getAssumptions(),
+                        printer.getMethodCallPreconditions(), printer.getFreeMethodCallPreconditions(),
+                        printer.getMethodCallPostconditions(), printer.getFreeMethodCallPostconditions()));
+                // LatticeVisitors are reused, but result contents are compilation-unit-specific, so we reset them
+                results.forEach(LatticeVisitor.Result::clear);
+            } else {
+                throw new IOException("unknown output language: " + outputLangOption);
             }
         } catch (IOException e) {
             e.printStackTrace();

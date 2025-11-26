@@ -648,24 +648,6 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
     }
 
     @Override
-    public void visitReturn(JCReturn tree) {
-        // Print inferred packing statements
-        try {
-            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
-            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
-            if (unpackFrame != null) {
-                printUnpackStatement(enclMethod, unpackFrame.toString());
-            } else if (packFrame != null) {
-                printPackStatement(enclMethod, packFrame.toString());
-            }
-        } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
-        }
-
-        super.visitReturn(tree);
-    }
-
-    @Override
     public void visitNewClass(JCNewClass tree) {
         try {
             if (propertyFactory.getChecker().shouldNotUseTrampoline(tree.type.toString())) {
@@ -721,6 +703,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
         }
     }
 
+    @Override
     protected void printPackStatement(Tree tree, String frame) throws IOException {
         AssertionSequence assertionsSeq = new AssertionSequence();
 
@@ -762,6 +745,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
         printlnAligned(assertionsSeq.toString());
         assertions += assertionsSeq.assertions.size();
+        assumptions += assertionsSeq.assumptions.size();
         align();
         //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
         //print(String.format("//@ set packed = \\type(%s)", typeElement));
@@ -769,25 +753,12 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
         align();
     }
 
+    @Override
     protected void printUnpackStatement(Tree tree, String frame) throws IOException {
         //TODO Workaround for KeY not supporting set statement for \TYPE variable because Recoder is terrible
         //print(String.format("//@ set packed = \\type(%s)", typeElement.getSuperclass()));
         println(String.format("havocPacked(); //@ assume packed == \\type(%s);", frame));
         align();
-    }
-
-    protected void printInferredPackingStatements(Tree tree) {
-        try {
-            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(tree);
-            TypeMirror packFrame = propertyFactory.getInferredPackFrame(tree);
-            if (unpackFrame != null) {
-                printUnpackStatement(tree, unpackFrame.toString());
-            } else if (packFrame != null) {
-                printPackStatement(tree, packFrame.toString());
-            }
-        } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
-        }
     }
 
     @Override

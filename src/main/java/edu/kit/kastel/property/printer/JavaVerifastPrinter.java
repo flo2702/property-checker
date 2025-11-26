@@ -16,8 +16,10 @@
  */
 package edu.kit.kastel.property.printer;
 
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.tools.javac.code.Attribute;
+import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
@@ -44,13 +46,12 @@ import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
@@ -73,6 +74,12 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
     private PredicateDef enclClassOwnFieldsPred;
     private PredicateDef enclClassFieldTypesPred;
+
+    protected int enclClassAssertionSequenceCounter;
+    protected int enclClassAssumptionCounter;
+
+    private List<JCTree.JCMethodDecl> enclClassTrampolinesToGenerate;
+    private List<Pair<TypeMirror, VerifastContract>> enclClassAssumptionsToGenerate;
 
     protected static String getOwnFieldsPredicateName(TypeMirror typeMirror) {
         return typeMirror.toString() + "_OwnFields";
@@ -187,6 +194,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             JCClassDecl enclClassPrev = enclClass;
             enclClass = tree;
 
+            enclClassTrampolinesToGenerate = new ArrayList<>();
+            enclClassAssumptionsToGenerate = new ArrayList<>();
+            enclClassAssertionSequenceCounter = 0;
+            enclClassAssumptionCounter = 0;
+
             if (isInterface(tree)) {
                 print("interface " + tree.name);
                 printTypeParameters(tree.typarams);
@@ -238,8 +250,34 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     println();
                 }
 
-                TODO
-                //print generated methods here
+                println();
+                println("// GENERATED METHODS; UNPROVABLE")
+                println();
+
+                if (isInterface(enclClass)) {
+                    for (JCTree.JCMethodDecl method : enclClassTrampolinesToGenerate) {
+                        println();
+                        printTrampoline(method, false);
+                    }
+                } else {
+                    for (JCTree.JCMethodDecl method : enclClassTrampolinesToGenerate) {
+                        println();
+                        printTrampoline(method);
+                    }
+                }
+                for (int i = 0; i < enclClassAssumptionCounter; ++i) {
+                    Pair<TypeMirror, VerifastContract> assumption = enclClassAssumptionsToGenerate.get(i);
+                    println();
+                    printlnAligned(String.format("public static void assert%s(%s arg)", i, assumption.getLeft()));
+                    indent();
+                    printlnAligned(assumption.getRight().toString());
+                    undent();
+                    if (isInterface(enclClass)) {
+                        printlnAligned(";");
+                    } else {
+                        printlnAligned("{}");
+                    }
+                }
 
                 undent();
                 printlnAligned("}");
@@ -527,10 +565,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             enclMethod = prevEnclMethod;
 
             if (!isInterface(enclClass) && !(isAbstract(enclClass) && isConstructor(tree))) {
-                println();
-                printTrampoline(tree);
+                enclClassTrampolinesToGenerate.add(tree);
             } else if (isInterface(enclClass)) {
-                printTrampoline(tree, false);
+                enclClassTrampolinesToGenerate.add(tree);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -689,7 +726,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 } else {
                     printExpr(tree.restype);
                 }
-                print(" " + tree.name);
+                print(trampolineName(tree.name));
             }
 
             print("(");
@@ -731,10 +768,140 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
     }
 
+    @Override
+    public void visitNewClass(JCTree.JCNewClass tree) {
+        try {
+            if (propertyFactory.getChecker().shouldNotUseTrampoline(tree.type.toString())) {
+                super.visitNewClass(tree);
+                return;
+            }
+
+            if (tree.encl != null) {
+                printExpr(tree.encl);
+                print(".");
+            }
+
+            if (tree.def != null && tree.def.mods.annotations.nonEmpty()) {
+                printTypeAnnotations(tree.def.mods.annotations);
+            }
+            printExpr(tree.clazz);
+            print(".");
+            print(trampolineName("<init>"));
+            print("(");
+            StringJoiner args = new StringJoiner(", ");
+            args.add(tree.args.toString());
+            print(args);
+            print(")");
+            if (tree.def != null) {
+                com.sun.tools.javac.util.Name enclClassNamePrev = enclClassName;
+                enclClassName =
+                        tree.def.name != null ? tree.def.name :
+                                tree.type != null && tree.type.tsym.name != tree.type.tsym.name.table.names.empty
+                                        ? tree.type.tsym.name : null;
+                if ((tree.def.mods.flags & Flags.ENUM) != 0) {
+                    print("/*enum*/");
+                }
+                printBlock(tree.def.defs);
+                enclClassName = enclClassNamePrev;
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    protected void printPackStatement(Tree tree, String frame) throws IOException {
+        List<VerifastClause> assertions = new ArrayList<>();
+        List<VerifastContract> assumptions = new ArrayList<>();
+
+        println();
+
+        {
+            VerifastClause receiverPacked = new VerifastClause("assert", false);
+            AnnotationMirror receiverPackingType =
+                    propertyFactory.getInputPackingTypes(enclMethod).get(0);
+            VariableElement receiver = TreeUtils.elementFromDeclaration(enclMethod.getReceiverParameter());
+            receiverPacked.add(getOwnFieldsPredicateUse(receiverPackingType, receiver, f -> "?this_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+            printlnAligned(receiverPacked.toString());
+        }
+
+        List<VariableElement> allFields = enclClass.type == null
+                ? List.of()
+                : ElementFilter.fieldsIn(TypesUtils.getTypeElement(enclClass.type).getEnclosedElements());
+        for (VariableElement field : allFields) {
+            VerifastClause fieldAssertion = new VerifastClause("assert", false);
+            VerifastContract fieldAssumption = new VerifastContract(false, false);
+
+            if (!field.asType().getKind().isPrimitive()) {
+                AnnotationMirror packingType =
+                        propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
+                String name = field.getSimpleName().toString();
+                fieldAssertion.add(getOwnFieldsPredicateUse(
+                        packingType,
+                        field.asType(), "this_" + name + "_a" + enclClassAssertionSequenceCounter,
+                        f -> "?" + name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+
+                fieldAssumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+                fieldAssumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                fieldAssumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            }
+
+            for (LatticeVisitor.Result result : results) {
+                List<VariableElement> uninitFields = result.getUninitializedFields(tree);
+                AnnotatedTypeMirror type = result.getTypeFactory().getAnnotatedType(field);
+                PropertyAnnotation pa = result.getLattice().getEffectivePropertyAnnotation(type);
+
+                if (!pa.getAnnotationType().isTrivial()) {
+                    boolean wt = !uninitFields.contains(field);
+
+                    if (wt) {
+                        String name = field.getSimpleName().toString();
+                        fieldAssumption.addEnsuresPred(new PredicateUse(pa, name, f -> "arg_" + f.getSimpleName() + "_a"));
+                    } else {
+                        String name = field.getSimpleName().toString();
+                        fieldAssertion.add(new PredicateUse(
+                                pa,
+                                "this_" + name + "_a" + enclClassAssertionSequenceCounter,
+                                f -> name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                    }
+                    assumptions.add(fieldAssumption);
+                    assertions.add(fieldAssertion);
+                }
+            }
+
+            enclClassAssumptionsToGenerate.add(Pair.of(field.asType(), fieldAssumption));
+            printlnAligned(String.format("assume%s(this.%s);", enclClassAssumptionCounter++, field.getSimpleName()));
+        }
+
+        assertions.stream().map(VerifastClause::toString).forEach(this::printlnAligned);
+
+        this.assertions += assertions.size();
+        this.assumptions += assumptions.size();
+        ++enclClassAssertionSequenceCounter;
+        align();
+    }
+
+    @Override
+    protected void printUnpackStatement(Tree tree, String frame) throws IOException {
+        // do nothing
+    }
+
+    protected String trampolineName(String methodName) {
+        if (methodName.equals("<init>")) {
+            methodName = "INIT";
+        }
+
+        return String.format("__%s_restorePermissions", methodName.replace('.', '_'));
+    }
+
+    protected String trampolineName(Name methodName) {
+        return trampolineName(methodName.toString());
+    }
+
     @SuppressWarnings("unchecked")
     protected List<String> getVerifastClauseValues(Element element) {
-        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastClauses.class);
-        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastClause.class);
+        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, edu.kit.kastel.property.checker.qual.VerifastClauses.class);
+        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, edu.kit.kastel.property.checker.qual.VerifastClause.class);
 
         if (verifastClauses == null && verifastClause == null) {
             return Collections.emptyList();
@@ -753,7 +920,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
     @SuppressWarnings("unchecked")
     protected List<String> getVerifastClauseValuesTranslationOnly(Element element) {
         AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastClausesTranslationOnly.class);
-
         AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastClauseTranslationOnly.class);
 
         if (verifastClauses == null && verifastClause == null) {
@@ -808,7 +974,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
 
         public void printJarsrc() {
-            //TODO
+            TODO
         }
     }
 

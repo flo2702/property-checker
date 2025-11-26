@@ -1,14 +1,13 @@
 package edu.kit.kastel.property.printer;
 
-import com.github.javaparser.utils.TypeUtils;
 import com.sun.source.tree.MemberReferenceTree;
+import com.sun.source.tree.Tree;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.checker.PropertyAnnotatedTypeFactory;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.config.Config;
-import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
@@ -40,7 +39,7 @@ import static com.sun.tools.javac.code.Flags.INTERFACE;
  * with common functionality.
  */
 @SuppressWarnings("nls")
-public class PropertyCheckerPrettyPrinter extends PrettyPrinter {
+public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
 
     public static boolean TRANSLATION_RAW = false;
 
@@ -183,6 +182,40 @@ public class PropertyCheckerPrettyPrinter extends PrettyPrinter {
             throw new UncheckedIOException(e);
         }
     }
+
+    @Override
+    public void visitReturn(JCTree.JCReturn tree) {
+        try {
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
+            if (unpackFrame != null) {
+                printUnpackStatement(enclMethod, unpackFrame.toString());
+            } else if (packFrame != null) {
+                printPackStatement(enclMethod, packFrame.toString());
+            }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+
+        super.visitReturn(tree);
+    }
+
+    protected void printInferredPackingStatements(Tree tree) {
+        try {
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(tree);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(tree);
+            if (unpackFrame != null) {
+                printUnpackStatement(tree, unpackFrame.toString());
+            } else if (packFrame != null) {
+                printPackStatement(tree, packFrame.toString());
+            }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+    }
+
+    protected abstract void printPackStatement(Tree tree, String frame) throws IOException;
+    protected abstract void printUnpackStatement(Tree tree, String frame) throws IOException;
 
     @Override
     public void printTypeAnnotations(com.sun.tools.javac.util.List<JCTree.JCAnnotation> trees) throws IOException {

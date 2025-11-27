@@ -947,12 +947,11 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             return;
         }
 
-
         visitAssignOrDef(
                 tree.getVariable().toString(),
                 unannotatedTypeNameLhs(tree.getVariable()),
                 tree.getExpression(),
-                getConditions(tree, tempVar, ConditionLocation.ASSERTION),
+                conditions,
                 tempVar);
     }
 
@@ -1366,10 +1365,6 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
     protected String trampolineBooleanParamName(String paramName, LatticeVisitor.Result wellTypedness) {
         return String.format("%s_%s", paramName, wellTypedness.getLattice().getIdent());
-    }
-
-    protected String tempVarName() {
-        return String.format("temp%d", tempVarNum++);
     }
 
     @SuppressWarnings("unchecked")

@@ -99,6 +99,10 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         return freeMethodCallPostconditions;
     }
 
+    protected String tempVarName() {
+        return String.format("temp%d", tempVarNum++);
+    }
+
     @Override
     public void visitImport(JCTree.JCImport tree) {
         String str = tree.qualid.toString();

@@ -16,15 +16,16 @@
  */
 package edu.kit.kastel.property.printer;
 
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
+import com.google.common.collect.Streams;
+import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
+import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.checker.qual.VerifastClause;
 import edu.kit.kastel.property.checker.qual.VerifastClauseTranslationOnly;
 import edu.kit.kastel.property.checker.qual.VerifastClauses;
 import edu.kit.kastel.property.checker.qual.VerifastClausesTranslationOnly;
@@ -33,16 +34,11 @@ import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
-import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.util.FileUtils;
+import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.lang3.tuple.Triple;
-import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
-import org.checkerframework.framework.util.Contract;
-import org.checkerframework.framework.util.JavaExpressionParseUtil;
-import org.checkerframework.framework.util.StringToJavaExpression;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.ElementUtils;
 import org.checkerframework.javacutil.TreeUtils;
@@ -61,6 +57,7 @@ import java.util.stream.Collectors;
 
 import static com.sun.tools.javac.code.Flags.ENUM;
 import static com.sun.tools.javac.code.Flags.INTERFACE;
+import static com.sun.tools.javac.tree.JCTree.Tag.SELECT;
 
 @SuppressWarnings("nls")
 public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
@@ -251,7 +248,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 }
 
                 println();
-                println("// GENERATED METHODS; UNPROVABLE")
+                println("// GENERATED METHODS; UNPROVABLE");
                 println();
 
                 if (isInterface(enclClass)) {
@@ -768,6 +765,24 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
     }
 
+    protected void printInstanceInitializers() throws IOException {
+        List<Union<StatementTree, VariableTree, BlockTree>> inits =
+                results.get(0).getInstanceInitializers(enclClass.sym.getQualifiedName().toString());
+        for (Union<StatementTree, VariableTree, BlockTree> init : inits) {
+            align();
+            init.consume(
+                    var -> {
+                        visitAssignNoConditions(
+                                var.getName().toString(),
+                                (JCTree) var.getInitializer());
+                    },
+                    block -> {
+                        ((JCTree.JCBlock) block).accept(this);
+                    });
+            println();
+        }
+    }
+
     @Override
     public void visitNewClass(JCTree.JCNewClass tree) {
         try {
@@ -879,6 +894,333 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         this.assumptions += assumptions.size();
         ++enclClassAssertionSequenceCounter;
         align();
+    }
+
+    @Override
+    public void visitApply(JCTree.JCMethodInvocation tree) {
+        if (tree.meth.toString().equals("super") || tree.meth.toString().equals("this")) {
+            super.visitApply(tree);
+            return;
+        }
+
+        try {
+            printInferredPackingStatements(tree);
+
+            // Explicit packing statement
+            if (tree.meth.toString().equals("Packing.pack")) {
+                printPackStatement(tree, TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression()).toString());
+            } else if (tree.meth.toString().equals("Packing.unpack")) {
+                printUnpackStatement(tree, ((TypeElement) TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression())).getSuperclass().toString());
+            } else if (tree.meth.toString().startsWith("Ghost.")) {
+                //TODO ghost variables in Verifast
+                return;
+            } else if (tree.meth.toString().startsWith("Assert.immutable") ||
+                    (tree.meth.toString().equals("Assert.immutableFieldUnchanged_TranslationOnly") && TRANSLATION_RAW)) {
+                //TODO Additional uniqueness type information in Verifast?
+                // Probably unneeded in separation logic
+                return;
+            } else if (tree.meth.toString().equals("Assert._assert")) {
+                //TODO
+                // Assert._assert and Assert._assume take JML expression as argument
+                // Introduce separate assert/assume functions for JML and Verifast
+                return;
+            } else if (tree.meth.toString().equals("Assert._assume")) {
+                return;
+            }
+
+            AnnotatedTypeMirror.AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;
+
+            for (LatticeVisitor.Result wellTypedness : results) {
+                AnnotatedTypeMirror.AnnotatedExecutableType methodType = wellTypedness.getTypeFactory().methodFromUse(tree).executableType;
+
+                if (!ElementUtils.isStatic(invokedMethod.getElement())) {
+                    PropertyAnnotationType pat = wellTypedness.getLattice().getEffectivePropertyAnnotation(methodType.getReceiverType()).getAnnotationType();
+                    if (!pat.isTrivial() && !pat.isInv()) {
+                        if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW) {
+                            ++methodCallPreconditions;
+                        } else {
+                            //TODO add assumptions for free preconditions?
+                            ++freeMethodCallPreconditions;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < invokedMethod.getParameterTypes().size(); ++i) {
+                    AnnotatedTypeMirror paramType = methodType.getParameterTypes().get(i);
+                    // TODO Don't add argument for type variable
+                    // to be consistent with the (non-generic) declaration of the trampoline method
+                    if (!(paramType instanceof AnnotatedTypeMirror.AnnotatedTypeVariable) &&
+                            !wellTypedness.getLattice().getPropertyAnnotation(paramType).getAnnotationType().isTrivial()) {
+                        if (wellTypedness.getIllTypedMethodParams(tree).contains(i) || TRANSLATION_RAW) {
+                            ++methodCallPreconditions;
+                        } else {
+                            //TODO add assumptions for free preconditions?
+                            ++freeMethodCallPreconditions;
+                        }
+                    }
+                }
+            }
+
+            if (propertyFactory.getChecker().shouldNotUseTrampoline(((Symbol.MethodSymbol) invokedMethod.getElement()).owner.toString())) {
+                super.visitApply(tree);
+                return;
+            }
+
+            if (tree.meth.hasTag(SELECT)) {
+                JCTree.JCFieldAccess left = (JCTree.JCFieldAccess)tree.meth;
+                printExpr(left.selected);
+                print(".");
+                print(trampolineName(left.name));
+            } else {
+                print(trampolineName(tree.meth.toString()));
+            }
+
+            print("(");
+            printExprs(tree.args);
+            print(")");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private boolean inForLoopInit = false;
+
+    @Override
+    public void visitForLoop(JCTree.JCForLoop tree) {
+        try {
+            this.print("for (");
+            inForLoopInit = true;
+            if (tree.init.nonEmpty()) {
+                if (tree.init.head.hasTag(JCTree.Tag.VARDEF)) {
+                    this.printExpr((JCTree)tree.init.head);
+
+                    for(com.sun.tools.javac.util.List<JCTree.JCStatement> l = tree.init.tail; l.nonEmpty(); l = l.tail) {
+                        JCTree.JCVariableDecl vdef = (JCTree.JCVariableDecl)l.head;
+                        this.print(", ");
+                        this.print(vdef.name);
+                        if (vdef.init != null) {
+                            this.print(" = ");
+                            this.printExpr(vdef.init);
+                        }
+                    }
+                } else {
+                    this.printExprs(tree.init);
+                }
+            }
+
+            this.print("; ");
+            if (tree.cond != null) {
+                this.printExpr(tree.cond);
+            }
+
+            this.print("; ");
+            this.printExprs(tree.step);
+            this.print(") ");
+            inForLoopInit = false;
+            this.printStat(tree.body);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    protected Pair<VerifastClause, VerifastContract> getConditions(JCTree.JCAssign tree, String subject) {
+        VerifastClause assertion = new VerifastClause("assert", false);
+        VerifastContract assumption = new VerifastContract(false, false);
+
+        AnnotatedTypeMirror packingTypeMirror = propertyFactory.getAnnotatedTypeLhs(tree);
+        AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
+        TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
+
+        if (underlyingType.getKind().isPrimitive()) {
+            assertion.add(getOwnFieldsPredicateUse(
+                    packingType,
+                    underlyingType, subject,
+                    f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
+            ));
+
+            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+        }
+
+        for (LatticeVisitor.Result wellTypedness : results) {
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
+            AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree);
+
+            if (type instanceof AnnotatedTypeMirror.AnnotatedExecutableType
+                    || AnnotationUtils.areSame(type.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                continue;
+            }
+
+            Lattice lattice = wellTypedness.getLattice();
+            boolean wt = wellTypedness.isWellTyped(tree);
+
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
+            if (wt) {
+                assumption.addEnsuresPred(new PredicateUse(pa, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+                ++assumptions;
+            } else {
+                assertion.add(new PredicateUse(
+                        pa,
+                        subject,
+                        f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                ++assertions;
+            }
+        }
+
+        return Pair.of(assertion, assumption);
+    }
+
+    protected Pair<VerifastClause, VerifastContract> getConditions(JCTree.JCVariableDecl tree, String subject) {
+        VerifastClause assertion = new VerifastClause("assert", false);
+        VerifastContract assumption = new VerifastContract(false, false);
+
+        AnnotatedTypeMirror packingTypeMirror = propertyFactory.getAnnotatedTypeLhs(tree);
+        AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
+        TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
+
+        if (underlyingType.getKind().isPrimitive()) {
+            assertion.add(getOwnFieldsPredicateUse(
+                    packingType,
+                    underlyingType, subject,
+                    f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
+            ));
+
+            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+        }
+
+        for (LatticeVisitor.Result wellTypedness : results) {
+            GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
+            AnnotatedTypeMirror type = factory.getAnnotatedTypeLhs(tree);
+
+            if (type instanceof AnnotatedTypeMirror.AnnotatedExecutableType
+                    || AnnotationUtils.areSame(type.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                continue;
+            }
+
+            Lattice lattice = wellTypedness.getLattice();
+            boolean wt = wellTypedness.isWellTyped(tree);
+
+            PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
+            if (wt) {
+                assumption.addEnsuresPred(new PredicateUse(pa, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+                ++assumptions;
+            } else {
+                assertion.add(new PredicateUse(
+                        pa,
+                        subject,
+                        f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                ++assertions;
+            }
+        }
+
+        enclClassAssumptionsToGenerate.add(Pair.of(underlyingType, assumption));
+        return Pair.of(assertion, assumption);
+    }
+
+    @Override
+    public void visitAssign(JCTree.JCAssign tree) {
+        printInferredPackingStatements(tree);
+
+        String tempVar = tempVarName();
+        Pair<VerifastClause, VerifastContract> conditions = getConditions(tree, tempVar);
+
+        // For readability, skip field assignments if they are not ill-typed (which can only happen with assignments
+        // to committed fields).
+        if (tree.getVariable() instanceof MemberSelectTree && conditions.getLeft().getPreds().size() == 1) {
+            super.visitAssign(tree);
+            return;
+        }
+
+        //TODO This only works if the for loop's index var has top type; otherwise we must transform the for loop
+        // into a while loop
+        if (inForLoopInit) {
+            super.visitAssign(tree);
+            return;
+        }
+
+        visitAssignOrDef(
+                tree.getVariable().toString(),
+                unannotatedTypeNameLhs(tree.getVariable()),
+                tree.getExpression(),
+                conditions,
+                tempVar);
+    }
+
+    @Override
+    public void visitVarDef(JCTree.JCVariableDecl tree) {
+        printInferredPackingStatements(tree);
+
+        if (enclMethod == null) {
+            try {
+                print("public ");
+                if (tree.getModifiers().getFlags().contains(Modifier.STATIC)) {
+                    print("static ");
+                }
+                println(String.format("%s %s;", unannotatedNullableTypeNameLhs(tree), tree.getName()));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return;
+        }
+
+        //TODO This only works if the for loop's index var has top type; otherwise we must transform the for loop
+        // into a while loop
+        if (inForLoopInit) {
+            super.visitVarDef(tree);
+            return;
+        }
+
+        try {
+            String tempVar = tempVarName();
+
+            print(String.format("%s %s", unannotatedTypeNameLhs(tree), tree.getName()));
+            if (prec == TreeInfo.notExpression) {
+                println(";");
+                align();
+            }
+
+            if (tree.getInitializer() != null) {
+                visitAssignOrDef(
+                        tree.getName().toString(),
+                        unannotatedTypeNameLhs(tree),
+                        tree.getInitializer(),
+                        getConditions(tree, tempVar),
+                        tempVar);
+                print(";");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    protected void visitAssignNoConditions(String varName, JCTree expression) {
+        try {
+            print(String.format("%s = ", varName));
+            expression.accept(this);
+            println(";");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    protected void visitAssignOrDef(String varName, String unannotatedTypeName, JCTree expression, Pair<VerifastClause, VerifastContract> conditions, String tempVar) {
+        try {
+            print(String.format("%s %s = ", unannotatedTypeName, tempVar));
+            expression.accept(this);
+            println(";");
+
+            printlnAligned(String.format("assume%s(this.%s);", enclClassAssumptionCounter++, varName));
+            printlnAligned(conditions.getLeft().toString());
+            ++enclClassAssertionSequenceCounter;
+
+            align();
+            print(String.format("%s = %s", varName, tempVar));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -1033,6 +1375,10 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             this.preds.addAll(preds);
         }
 
+        public List<PredicateUse> getPreds() {
+            return preds;
+        }
+
         @Override
         public String toString() {
             StringJoiner sj = new StringJoiner(" &*& ");
@@ -1152,7 +1498,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             if (pat.getSubjectType().getKind().isPrimitive()) {
                 res.add(new PredicateParameter(pat.getSubjectType().toString(), "subject"));
             } else {
-                List<VariableElement> fields = nonStaticFieldsInFrame(pat.getSubjectType());
+                List<VariableElement> fields = PropertyCheckerPrettyPrinter.nonStaticFieldsInFrame(pat.getSubjectType());
                 fields.removeIf(ElementUtils::isStatic);
                 fields.forEach(f -> res.add(new PredicateParameter(f)));
             }

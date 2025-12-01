@@ -3,6 +3,7 @@ package case_study;
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.util.Ghost;
 import edu.kit.kastel.property.checker.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
@@ -29,11 +30,10 @@ public final class SortedList {
     @JMLClause("ensures this.first == null;")
     @JMLClause("ensures \\fresh(this.footprint);")
     @JMLClause("assignable \\nothing;") @Pure
-    // :: error: empty.inconsistent.constructor.type
-    // :: error: inv.inconsistent.constructor.type
+    // :: error: sorted.initialization.fields.uninitialized
     public @PossiblyEmpty @Inv SortedList() {
+        // :: error: sorted.assignment.type.incompatible
         this.first = null;
-        // :: error: initialization.fields.uninitialized
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint))");
     }
 
@@ -48,7 +48,6 @@ public final class SortedList {
         if (this.first == null) {
             this.first = new Node(newHead);
         } else {
-            // :: error: nullness.method.invocation.invalid
             this.first.insert(newHead);
         }
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first.footprint)");
@@ -58,10 +57,9 @@ public final class SortedList {
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint, this.first.packed;")
     @EnsuresPossiblyEmpty(value="this")
-    // :: error: empty.contracts.postcondition.not.satisfied
     // :: error: inv.contracts.postcondition.not.satisfied
     public Order remove(@Unique @NonEmpty @Inv SortedList this) {
-        // :: error: nullness.method.invocation.invalid
+        // :: error: nullness.dereference.of.nullable
         Order result = this.first.getHead();
         this.first = this.first.stealTail();
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint)");
@@ -84,7 +82,7 @@ public final class SortedList {
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @NonEmpty @Inv SortedList this) {
-        // :: error: nullness.method.invocation.invalid
+        // :: error: nullness.dereference.of.nullable
         return this.first.getHead();
     }
 }

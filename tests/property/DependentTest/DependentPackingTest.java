@@ -9,13 +9,13 @@ import org.checkerframework.dataflow.qual.*;
 
 public class DependentPackingTest {
 
-    // :: error: initialization.field.uninitialized
+    // :: error: interval.initialization.field.uninitialized
     public @Dependable @Interval(min="0", max="0") int field0;
-    // :: error: initialization.field.uninitialized
+    // :: error: interval.initialization.field.uninitialized
     public @Dependable @Interval(min="0", max="this.field0") int field1;
 
     @NonMonotonic
-    // :: eror: packing.postcondition.not.satisfied
+    // :: error: packing.postcondition.not.satisfied
     public void foo0(@Unique DependentPackingTest this) {
         this.field0 = 1;
         this.field0 = 0;

@@ -16,7 +16,6 @@
  */
 package edu.kit.kastel.property.printer;
 
-import com.google.common.collect.Streams;
 import com.sun.source.tree.*;
 import com.sun.tools.javac.code.Attribute;
 import com.sun.tools.javac.code.Flags;
@@ -27,14 +26,12 @@ import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.checker.qual.VerifastClauseTranslationOnly;
-import edu.kit.kastel.property.checker.qual.VerifastClauses;
 import edu.kit.kastel.property.checker.qual.VerifastClausesTranslationOnly;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
-import edu.kit.kastel.property.util.FileUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.tuple.Pair;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -49,7 +46,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -1280,45 +1276,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
     public static final String PREDICATE_PKG_NAME = "_predicates";
     public static final String PREDICATE_CLASS_NAME = "_Predicates";
-
-    public static class PredicatePrinter {
-
-        private List<Lattice> lattices;
-        String outputDir;
-
-        public PredicatePrinter(List<Lattice> lattices, String outputDir) throws IOException {
-            this.lattices = lattices;
-            this.outputDir = outputDir;
-        }
-
-        public void printPredicates() throws IOException {
-            File file = Paths.get(outputDir, PREDICATE_PKG_NAME, PREDICATE_CLASS_NAME + ".java").toFile();
-            file.getParentFile().mkdirs();
-            FileUtils.createFile(file);
-
-            try(BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
-                out.write("package " + PREDICATE_PKG_NAME + ";\n\n");
-
-                for (Lattice lattice : lattices) {
-                    for (PropertyAnnotationType pat : lattice.getAnnotationTypes().values()) {
-                        String name = pat.getName();
-                        String args = pat.getParameters().stream().reduce(
-                                new StringJoiner(", " + pat.getSubjectType().toString() + " subject, "),
-                                (sj, param) -> sj.add(param.getType().toString() + " " + param.getName()),
-                                StringJoiner::merge).toString();
-                        String body = pat.getWFCondition() + "&*&" + pat.getProperty();
-                        out.write(String.format("//@ predicate %s(%s) = %s;", name, args, body));
-                    }
-                }
-            } catch (IOException e) {
-                throw e;
-            }
-        }
-
-        public void printJarsrc() {
-            TODO
-        }
-    }
 
     public static class VerifastContract {
 

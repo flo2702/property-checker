@@ -10,7 +10,7 @@ public class Sub extends PackingDependableTest {
 
     public @Interval(min="this.f",max="this.f") int g;
 
-    // :: error: initialization.fields.uninitialized
+    // :: error: interval.initialization.fields.uninitialized
     public Sub() {
         super();
         // :: error: interval.assignment.type.incompatible

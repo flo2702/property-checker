@@ -32,8 +32,9 @@ public abstract class PackingClientStore<V extends PackingClientValue<V>, S exte
                 permitNondeterministic);
     }
 
-    PackingClientAnnotatedTypeFactory getFactory() {
-        return (PackingClientAnnotatedTypeFactory) analysis.getTypeFactory();
+    @SuppressWarnings("unchecked")
+    PackingClientAnnotatedTypeFactory<?,?,?,?> getFactory() {
+        return (PackingClientAnnotatedTypeFactory<?,?,?,?>) analysis.getTypeFactory();
     }
 
     @Override

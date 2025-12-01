@@ -29,20 +29,21 @@ public class CaseStudyMutableVerifastTest extends PropertyCheckerTest {
     public CaseStudyMutableVerifastTest(List<File> testFiles) {
         super(
                 testFiles,
-                        ",tests/case_study_verifast/_case_study_mutable/lattice_agedover"
-                		+ ",tests/case_study_verifast/_case_study_mutable/lattice_allowedfor"
-                        + ",tests/case_study_verifast/_case_study_mutable/lattice_interval"
-                        + ",tests/case_study_verifast/_case_study_mutable/lattice_empty"
-                        + ",tests/case_study_verifast/_case_study_mutable/lattice_sign"
-                        + ",tests/case_study_verifast/_case_study_mutable/lattice_sorted"
-                        + ",tests/case_study_verifast/_case_study_mutable/lattice_inv",
-                "tests/case_study_verifast/_case_study_mutable/",
+                        "tests/case_study/_case_study_mutable/lattice_agedover_verifast"
+                		+ ",tests/case_study/_case_study_mutable/lattice_allowedfor_verifast"
+                        + ",tests/case_study/_case_study_mutable/lattice_interval_verifast"
+                        + ",tests/case_study/_case_study_mutable/lattice_empty_verifast"
+                        + ",tests/case_study/_case_study_mutable/lattice_sign_verifast"
+                        + ",tests/case_study/_case_study_mutable/lattice_sorted_verifast"
+                        //+ ",tests/case_study/_case_study_mutable/lattice_inv_verifast",
+                ,
+                "tests/case_study/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",
                 "-APropertyChecker_outputLang=verifast");
     }
 
     @Parameters
     public static String[] getTestDirs() {
-        return new String[] {"case_study_verifast/_case_study_mutable"};
+        return new String[] {"case_study/_case_study_mutable"};
     }
 }

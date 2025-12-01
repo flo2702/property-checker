@@ -16,16 +16,16 @@ public class NullnessDefaultTest {
     // :: error: initialization.static.field.uninitialized
     static Object staticDefaultField;
 
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @NonNull Object nonNullField;
     @Nullable Object nullableField;
     @MonotonicNonNull Object monotonicNonNullField;
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     Object defaultField;
     
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @ReadOnly @UnknownInitialization(Object.class) @NonNull Object nonNullField0;
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @ReadOnly @UnknownInitialization(Object.class) Object defaultField0;
 
     public void foo() {

@@ -4,6 +4,7 @@ import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.packing.qual.*;
 import org.checkerframework.checker.initialization.qual.*;
 import org.checkerframework.dataflow.qual.*;
@@ -40,10 +41,11 @@ public final class Node {
     public
     @Unique @Sorted
     // :: error: sorted.inconsistent.constructor.type
+    // :: error: sorted.initialization.fields.uninitialized
     Node(Order head) {
         this.head = head;
+        // :: error: sorted.assignment.type.incompatible
         this.tail = null;
-        // :: error: initialization.fields.uninitialized
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
 
@@ -71,7 +73,6 @@ public final class Node {
         if (this.tail == null) {
             this.tail = new Node(this.head);
         } else {
-            // :: error: nullness.argument.type.incompatible
             this.tail = new Node(this.head, this.tail);
         }
         this.head = newHead;
@@ -91,10 +92,8 @@ public final class Node {
         if (tail == null) {
             this.tail = new Node(newHead);
         } else {
-            // :: error: nullness.method.invocation.invalid
             this.tail.insert(newHead);
         }
-
 
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
 

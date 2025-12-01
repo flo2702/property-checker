@@ -11,7 +11,6 @@ public final class PreservingUpdateTest {
     @NonNull Object objField = new Object();
 
     void preservingAliased(@MaybeAliased PreservingUpdateTest this) {
-        // :: error: interval.assignment.type.incompatible
         this.intField = 2;
         this.objField = new Object();
     }

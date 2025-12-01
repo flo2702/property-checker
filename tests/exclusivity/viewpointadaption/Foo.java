@@ -8,9 +8,9 @@ import org.checkerframework.dataflow.qual.*;
 
 public class Foo {
     @ReadOnly @UnknownInitialization(Object.class) @Nullable Bar readOnly;
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @MaybeAliased Bar aliased;
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @Unique Bar unique;
 
     public void foo(@ReadOnly @UnknownInitialization(Object.class) Foo this) {
@@ -57,7 +57,7 @@ public class Foo {
     }
 
     // The adapted field type is compatible with the result type, but we're not allowed to leak a unique field
-    // :: error: initialization.fields.uninitialized
+    // :: error: exclusivity.initialization.fields.uninitialized
     public @Unique Bar getUniqueFromUnique(@Unique Foo this) {
         return this.unique;
     }

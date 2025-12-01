@@ -16,6 +16,11 @@
  */
 package edu.kit.kastel.property.lattice;
 
+import edu.kit.kastel.property.util.Functional;
+import org.checkerframework.javacutil.AnnotationBuilder;
+
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.AnnotationMirror;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -23,13 +28,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-
-import org.checkerframework.javacutil.AnnotationBuilder;
-
-import edu.kit.kastel.property.util.Functional;
 
 public class EvaluatedPropertyAnnotation {
 
@@ -49,6 +47,10 @@ public class EvaluatedPropertyAnnotation {
 
     public List<Object> getActualParameters() {
         return Collections.unmodifiableList(actualParameters);
+    }
+
+    public boolean isCheckable() {
+        return annotationType.getPropertyMethod() != null;
     }
 
     public boolean checkProperty(Object subject) {

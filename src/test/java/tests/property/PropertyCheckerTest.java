@@ -57,7 +57,7 @@ public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTe
         };
         String[] args = new String[defaultArgs.length + extraArgs.length];
         System.arraycopy(defaultArgs, 0, args, 0, defaultArgs.length);
-        System.arraycopy(extraArgs, 0, args, defaultArgs.length, args.length);
+        System.arraycopy(extraArgs, 0, args, defaultArgs.length, extraArgs.length);
         return args;
     }
 }

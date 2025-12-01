@@ -13,11 +13,11 @@ public final class Constructor {
     @Unique Object unique;
 
     @NonMonotonic
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized
     public Constructor() { }
 
     @NonMonotonic
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized
     public @UnknownInitialization(Constructor.class) Constructor(short dummy) {
     }
 

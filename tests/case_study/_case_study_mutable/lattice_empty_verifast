@@ -19,11 +19,11 @@ annotation TopEmpty() any :<==> "true" for "true";
 annotation BottomEmpty() any :<==> "false" for "true";
 
 annotation PossiblyEmpty() case_study.SortedList
-    :<==> "§subject§ != null"
+    :<==> "true"
     for "true";
 
 annotation NonEmpty() case_study.SortedList
-    :<==> "§subject§ != null && §subject§.first != null"
+    :<==> "first != null"
     for "true";
 
 relation PossiblyEmpty() <: TopEmpty() :<==> "true";

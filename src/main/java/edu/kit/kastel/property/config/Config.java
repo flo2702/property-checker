@@ -18,10 +18,10 @@ package edu.kit.kastel.property.config;
 
 import edu.kit.kastel.property.lattice.Bound;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
-import edu.kit.kastel.property.lattice.SubAnnotationRelation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.PropertyCheckable;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.WellFormednessCheckable;
-import org.checkerframework.javacutil.Pair;
+import edu.kit.kastel.property.lattice.SubAnnotationRelation;
+import edu.kit.kastel.property.util.Pair;
 
 @SuppressWarnings("nls")
 public final class Config {

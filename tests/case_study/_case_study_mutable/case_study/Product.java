@@ -2,6 +2,7 @@ package case_study;
 
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.checker.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;

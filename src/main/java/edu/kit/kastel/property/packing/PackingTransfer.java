@@ -47,6 +47,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
         if (underlyingAST instanceof UnderlyingAST.CFGMethod method) {
             MethodTree methodDeclTree = method.getMethod();
             if (TreeUtils.isConstructor(methodDeclTree)) {
+                @SuppressWarnings("deprecation")
                 TypeMirror thisType = TreeUtils.elementFromTree(method.getClassTree()).asType();
                 TypeMirror superType = TypesUtils.getSuperclass(thisType, atypeFactory.types);
                 initStore.initializeThisValue(atypeFactory.createUnderInitializationAnnotation(superType), thisType);
@@ -54,7 +55,10 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 VariableTree recvParam = methodDeclTree.getReceiverParameter();
                 boolean thisUnique;
                 AnnotationMirror thisAnno;
+
+                @SuppressWarnings("deprecation")
                 TypeMirror thisUnderlyingType;
+
                 if (recvParam != null) {
                     AnnotatedTypeMirror thisType = atypeFactory.getAnnotatedType(recvParam);
                     thisAnno = thisType.getAnnotationInHierarchy(

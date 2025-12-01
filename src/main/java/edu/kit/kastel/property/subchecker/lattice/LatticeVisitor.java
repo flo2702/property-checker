@@ -34,10 +34,7 @@ import edu.kit.kastel.property.smt.JavaToSmtExpression;
 import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
-import edu.kit.kastel.property.util.JavaExpressionUtil;
-import edu.kit.kastel.property.util.Packing;
-import edu.kit.kastel.property.util.TypeUtils;
-import edu.kit.kastel.property.util.Union;
+import edu.kit.kastel.property.util.*;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -49,7 +46,10 @@ import org.checkerframework.framework.type.AnnotatedTypeMirror.AnnotatedExecutab
 import org.checkerframework.framework.type.QualifierHierarchy;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.framework.util.JavaExpressionParseUtil;
-import org.checkerframework.javacutil.*;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.Resolver;
+import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
@@ -376,14 +376,14 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
         AnnotatedTypeMirror widenedValueType = atypeFactory.getWidenedType(valueType, varType);
         boolean success = atypeFactory.getTypeHierarchy().isSubtype(widenedValueType, varType);
 
-        if (!success && TypesUtils.isPrimitive(valueType.getUnderlyingType())) {
+        if (!success && (TypesUtils.isPrimitive(valueType.getUnderlyingType()) || valueTree instanceof LiteralTree)) {
             Lattice lattice = getLatticeSubchecker().getTypeFactory().getLattice();
             PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(varType);
             EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(varType);
 
             if (pa.getAnnotationType().isInv() && pa.getAnnotationType().isNonNull()) {
                 success = true;
-            } else if (epa != null && valueTree instanceof LiteralTree literal) {
+            } else if (epa != null && epa.isCheckable() && valueTree instanceof LiteralTree literal) {
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
                 if (types.isSameType(valueType.getUnderlyingType(), pat.getSubjectType())) {

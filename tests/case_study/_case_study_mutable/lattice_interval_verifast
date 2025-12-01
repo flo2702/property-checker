@@ -1,0 +1,38 @@
+# This file is part of the Property Checker.
+# Copyright (c) 2021 -- present. Property Checker developers.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 only, as
+# published by the Free Software Foundation.
+#
+# This code is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# version 2 for more details.
+#
+# You should have received a copy of the GNU General Public License version
+# 2 along with this work; if not, write to the Free Software Foundation,
+# Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ident interval;
+
+annotation IntervalTop() any :<==> "true" for "true";
+annotation IntervalBottom() any :<==> "false" for "true";
+
+annotation Interval(int min, int max) int
+    :<==> "subject >= min &*& subject <= max"
+    for "min >= 0 &*& min <= max";
+    
+relation Interval(a,b) <: IntervalTop() :<==> "true";
+relation IntervalBottom() <: Interval(a,b) :<==> "true";
+    
+relation Interval(a0, b0) <: Interval(a1, b1) :<==> "§a0§ >= §a1§ && §b0§ <= §b1§";
+
+join Interval(a0, b0), Interval(a1, b1) := Interval("java.lang.Math.min(§a0§, §a1§)", "java.lang.Math.max(§b0§, §b1§)");
+
+# overlapping
+meet Interval(a0, b0), Interval(a1, b1)
+    := Interval("java.lang.Math.max(§a0§, §a1§)", "java.lang.Math.min(§b0§, §b1§)")
+    for "§b0§ >= §a1§ || §b1§ >= §a0§";
+    
+# non-overlapping
+meet Interval(a0, b0), Interval(a1, b1) := IntervalBottom(); # "!(b0 >= a1 || b1 >= a0)" is implicit!

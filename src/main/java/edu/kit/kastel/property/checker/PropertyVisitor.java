@@ -28,6 +28,7 @@ import edu.kit.kastel.property.printer.JavaVerifastPrinter;
 import edu.kit.kastel.property.printer.PrettyPrinter;
 import edu.kit.kastel.property.smt.SmtCompiler;
 import edu.kit.kastel.property.smt.SmtExpression;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.FileUtils;

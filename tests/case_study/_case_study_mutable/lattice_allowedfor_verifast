@@ -13,22 +13,15 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident empty;
+ident allowedfor;
 
-annotation TopEmpty() any :<==> "true" for "true";
-annotation BottomEmpty() any :<==> "false" for "true";
+annotation AllowedForEveryone() any :<==> "true" for "true";
+annotation AllowedForNoone() any :<==> "false" for "true";
 
-annotation PossiblyEmpty() case_study.SortedList
-    :<==> "§subject§ != null"
-    for "true";
+annotation AllowedFor(int n) case_study.Product
+    :<==> "ageRestriction <= n"
+    for "n >= 0";
 
-annotation NonEmpty() case_study.SortedList
-    :<==> "§subject§ != null && §subject§.first != null"
-    for "true";
-
-relation PossiblyEmpty() <: TopEmpty() :<==> "true";
-relation NonEmpty() <: TopEmpty() :<==> "true";
-relation NonEmpty() <: PossiblyEmpty() :<==> "true";
-relation BottomEmpty() <: NonEmpty() :<==> "true";
-relation BottomEmpty() <: PossiblyEmpty() :<==> "true";
-relation BottomEmpty() <: TopEmpty() :<==> "true";
+relation AllowedForNoone() <: AllowedFor(y) :<==> "true";
+relation AllowedFor(x) <: AllowedForEveryone() :<==> "true";
+relation AllowedFor(x) <: AllowedFor(y) :<==> "§x§ < §y§";

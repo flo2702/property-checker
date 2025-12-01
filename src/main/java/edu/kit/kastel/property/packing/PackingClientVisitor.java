@@ -5,6 +5,7 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityVisitor;
+import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -226,6 +227,8 @@ public abstract class PackingClientVisitor<
         if (exitStore == null) {
             // If there is no regular exitStore, then the method cannot reach the regular exit and
             // there is no need to check anything.
+        } else if (atypeFactory.getQualifierHierarchy().getTopAnnotations().contains(annotation)) {
+            // top annotation is always fulfilled
         } else {
             CFAbstractValue<?> value = exitStore.getValue(expression);
             AnnotationMirror inferredAnno = null;
@@ -234,10 +237,11 @@ public abstract class PackingClientVisitor<
                 inferredAnno = qualHierarchy.findAnnotationInSameHierarchy(annos, annotation);
             }
             if (!checkContract(expression, annotation, inferredAnno, exitStore)) {
-                // TODO: There's a better way of doing this.
-                if (expression.toString().equals("this") && annotation.getAnnotationType().asElement().getSimpleName().contentEquals("NonNull")) {
+                if (expression.toString().equals("this") && atypeFactory instanceof LatticeAnnotatedTypeFactory latticeFactory
+                        && latticeFactory.getLattice().getPropertyAnnotation(annotation).getAnnotationType().isNonNull()) {
                     return;
                 }
+
                 checker.reportError(
                         methodTree,
                         getContractPostconditionNotSatisfiedMessage(),

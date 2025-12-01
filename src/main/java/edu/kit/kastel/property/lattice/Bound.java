@@ -16,6 +16,11 @@
  */
 package edu.kit.kastel.property.lattice;
 
+import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
+import edu.kit.kastel.property.lattice.PropertyAnnotationType.ParameterType;
+import edu.kit.kastel.property.util.Pair;
+import edu.kit.kastel.property.util.UnorderedPair;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -23,12 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.checkerframework.javacutil.Pair;
-
-import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
-import edu.kit.kastel.property.lattice.PropertyAnnotationType.ParameterType;
-import edu.kit.kastel.property.util.UnorderedPair;
 
 public class Bound implements Checkable {
 

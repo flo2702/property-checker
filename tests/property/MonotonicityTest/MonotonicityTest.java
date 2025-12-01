@@ -18,7 +18,7 @@ public class MonotonicityTest {
     }
 
     @NonMonotonic
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized
     MonotonicityTest(int dummy) {
         this.field0 = new Object();
         this.nonMonotonic();

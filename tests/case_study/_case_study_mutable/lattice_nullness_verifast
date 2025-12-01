@@ -13,22 +13,14 @@
 # You should have received a copy of the GNU General Public License version
 # 2 along with this work; if not, write to the Free Software Foundation,
 # Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
-ident empty;
+ident nullness;
 
-annotation TopEmpty() any :<==> "true" for "true";
-annotation BottomEmpty() any :<==> "false" for "true";
+annotation Nullable() any :<==> "true" for "true";
+annotation MonotonicNonNull() java.lang.Object :<==> "true" for "true"; # TODO: Monotonicity not expressible as refinement
+annotation NonNull() java.lang.Object :<==> "subject != null" for "true";
+annotation NullBottom() any :<==> "false" for "true";
 
-annotation PossiblyEmpty() case_study.SortedList
-    :<==> "§subject§ != null"
-    for "true";
-
-annotation NonEmpty() case_study.SortedList
-    :<==> "§subject§ != null && §subject§.first != null"
-    for "true";
-
-relation PossiblyEmpty() <: TopEmpty() :<==> "true";
-relation NonEmpty() <: TopEmpty() :<==> "true";
-relation NonEmpty() <: PossiblyEmpty() :<==> "true";
-relation BottomEmpty() <: NonEmpty() :<==> "true";
-relation BottomEmpty() <: PossiblyEmpty() :<==> "true";
-relation BottomEmpty() <: TopEmpty() :<==> "true";
+relation NullBottom() <: Nullable() :<==> "true";
+relation NullBottom() <: NonNull() :<==> "true";
+relation NonNull() <: MonotonicNonNull() :<==> "true";
+relation MonotonicNonNull() <: Nullable() :<==> "true";

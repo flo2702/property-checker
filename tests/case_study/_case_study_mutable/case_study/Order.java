@@ -2,6 +2,7 @@ package case_study;
 
 import edu.kit.kastel.property.util.Packing;
 import edu.kit.kastel.property.checker.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
 import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
 import edu.kit.kastel.property.packing.qual.*;
@@ -16,12 +17,14 @@ public final class Order {
 
     @JMLClause("ensures this.customer == customer && this.product == product && this.witness == witness;")
     @JMLClause("assignable \\nothing;") @Pure
+    // :: error: agedover.initialization.fields.uninitialized :: error: allowedfor.initialization.fields.uninitialized
     // :: error: agedover.contracts.postcondition.not.satisfied :: error: allowedfor.contracts.postcondition.not.satisfied
     public Order(int witness, @AgedOver(age="witness") Customer customer, @AllowedFor(age="witness") Product product) {
         this.witness = witness;
+        // :: error: agedover.assignment.type.incompatible
         this.customer = customer;
+        // :: error: allowedfor.assignment.type.incompatible
         this.product = product;
-        // :: error: initialization.fields.uninitialized
     }
 
     @JMLClause("ensures \\result == this.product.price;")

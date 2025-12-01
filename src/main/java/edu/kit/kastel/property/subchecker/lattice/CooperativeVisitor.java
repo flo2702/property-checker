@@ -7,13 +7,13 @@ import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.smt.SmtExpression;
 import edu.kit.kastel.property.util.CollectionUtils;
+import edu.kit.kastel.property.util.Pair;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.tuple.Triple;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreePathUtil;
 
 import javax.lang.model.element.AnnotationMirror;

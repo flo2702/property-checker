@@ -16,7 +16,6 @@
  */
 package tests.case_study;
 
-import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 import tests.property.PropertyCheckerTest;
 
@@ -24,15 +23,14 @@ import java.io.File;
 import java.util.List;
 
 @SuppressWarnings("nls")
-@Ignore
 public class CaseStudyMutableTest extends PropertyCheckerTest {
     public CaseStudyMutableTest(List<File> testFiles) {
         super(
                 testFiles,
-                        ",tests/case_study/_case_study_mutable/lattice_agedover"
+                        "tests/case_study/_case_study_mutable/lattice_agedover"
                 		+ ",tests/case_study/_case_study_mutable/lattice_allowedfor"
-                        + ",tests/case_study/_case_study_mutable/lattice_interval"
                         + ",tests/case_study/_case_study_mutable/lattice_empty"
+                        + ",tests/case_study/_case_study_mutable/lattice_interval"
                         + ",tests/case_study/_case_study_mutable/lattice_sign"
                         + ",tests/case_study/_case_study_mutable/lattice_sorted"
                         + ",tests/case_study/_case_study_mutable/lattice_inv",

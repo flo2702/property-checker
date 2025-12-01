@@ -131,6 +131,12 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
     }
 
     @Override
+    protected TransferResult<LatticeValue, LatticeStore> strengthenAnnotationOfEqualTo(TransferResult<LatticeValue, LatticeStore> res, Node firstNode, Node secondNode, LatticeValue firstValue, LatticeValue secondValue, boolean notEqualTo) {
+        // do nothing; we don't want insertValue to overwrite anything
+        return res;
+    }
+
+    @Override
     protected void processCommonAssignment(TransferInput<LatticeValue, LatticeStore> in, Node lhs, Node rhs, LatticeStore store, LatticeValue rhsValue) {
         // If the rhs is a literal that is compatible with the lhs's declared type, put that type in the store.
         boolean compatible = false;

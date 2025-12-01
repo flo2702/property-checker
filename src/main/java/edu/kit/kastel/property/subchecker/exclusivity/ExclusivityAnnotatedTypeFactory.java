@@ -175,6 +175,7 @@ public final class ExclusivityAnnotatedTypeFactory
      *                   This is treated as a field access expression chain, whose root has the type {@code exclType}.
      * @return the viewpoint-adapted uniqueness type, or {@code exclType} if {@code expression} is not a field access.
      */
+    @SuppressWarnings("unchecked")
     @Nullable
     public AnnotationMirror deriveExclusivityValue(AnnotatedTypeMirror exclType, JavaExpression expression) {
         var factory = ((ExclusivityAnnotatedTypeFactory) analysis.getTypeFactory());

@@ -6,7 +6,7 @@ import org.checkerframework.dataflow.qual.*;
 
 final class Assign {
 
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @Unique Foo foo;
 
     void assignWritableThis(@Unique Assign this) {

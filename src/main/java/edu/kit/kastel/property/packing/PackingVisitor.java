@@ -5,12 +5,21 @@ import com.sun.tools.javac.code.TargetType;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.TreeInfo;
+import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
+import edu.kit.kastel.property.lattice.Lattice;
+import edu.kit.kastel.property.lattice.PropertyAnnotation;
+import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.Unique;
-import edu.kit.kastel.property.subchecker.lattice.*;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeChecker;
+import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.lattice.LatticeSubchecker;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.util.Assert;
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.Pair;
 import org.checkerframework.checker.compilermsgs.qual.CompilerMessageKey;
 import org.checkerframework.checker.initialization.InitializationAbstractVisitor;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -88,6 +97,7 @@ public class PackingVisitor
     protected void reportMethodInvocabilityError(
             MethodInvocationTree tree, AnnotatedTypeMirror found, AnnotatedTypeMirror expected) {
         ExpressionTree recv = tree.getMethodSelect();
+        @SuppressWarnings("deprecation")
         Element element = TreeUtils.elementFromTree(tree);
         if (recv instanceof MemberSelectTree && ((MemberSelectTree) recv).getExpression().toString().equals("this")
                 && canInferPackingStatement(
@@ -121,15 +131,15 @@ public class PackingVisitor
             AnnotationMirror valAnno) {
         VariableTree receiver = methodTree.getReceiverParameter();
         boolean unique = receiver != null && receiver.getModifiers().getAnnotations().stream().anyMatch(anno -> anno.toString().equals("@Unique"));
+        Type classType = ((JCTree.JCMethodDecl) methodTree).sym.owner.type;
         TypeMirror varFrame;
         if (atypeFactory.isInitialized(varAnno)) {
             // If an object is initialized up to its most specific known subclass and no function with a receiver type
             // @UnderInitialization was called and no dependable field assigned, the object is @Initialized
-            if (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled() || atypeFactory.getRegularExitStore(methodTree).isDependableFieldAssigned()) {
+            if (!classType.isFinal() && (atypeFactory.getRegularExitStore(methodTree).isHelperFunctionCalled() || atypeFactory.getRegularExitStore(methodTree).isDependableFieldAssigned())) {
                 return false;
             }
             if (TreeUtils.isConstructor(methodTree)) {
-                Type classType = ((JCTree.JCMethodDecl) methodTree).sym.owner.type;
                 if (!classType.isFinal()) {
                     return false;
                 }
@@ -391,7 +401,8 @@ public class PackingVisitor
         for (VariableElement f : uninitializedFields) {
             fieldsString.add(f.getSimpleName());
         }
-        checker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
+
+        targetChecker.reportError(tree, "initialization.fields.uninitialized", fieldsString);
     }
 
     @Override
@@ -571,11 +582,31 @@ public class PackingVisitor
                 if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
                     break;
                 }
+
                 if (!factory.getTypeHierarchy().isSubtype(refType, declType)) {
+                    if ((TypesUtils.isPrimitive(refType.getUnderlyingType()) || valueExp instanceof LiteralTree) && !(factory instanceof NullnessLatticeAnnotatedTypeFactory)) {
+                        Lattice lattice = ((LatticeAnnotatedTypeFactory) factory).getLattice();
+                        PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(declType);
+                        EvaluatedPropertyAnnotation epa = lattice.getEvaluatedPropertyAnnotation(declType);
+
+                        if (pa.getAnnotationType().isInv() && pa.getAnnotationType().isNonNull()) {
+                            break;
+                        } else if (epa != null && epa.isCheckable() && valueExp instanceof LiteralTree literal) {
+                            PropertyAnnotationType pat = epa.getAnnotationType();
+
+                            if (types.isSameType(refType.getUnderlyingType(), pat.getSubjectType()) && epa.checkProperty(literal.getValue())) {
+                                break;
+                            } else if (literal.getKind() == Tree.Kind.NULL_LITERAL && !pat.getSubjectType().getKind().isPrimitive() && epa.checkProperty(null)) {
+                                break;
+                            }
+                        }
+                    }
+
                     if (targetChecker instanceof LatticeSubchecker latticeSubchecker) {
-                        ((LatticeVisitor) latticeSubchecker.getVisitor())
+                        latticeSubchecker.getVisitor()
                                 .amendSmtResultForValue(declType, refType, lhs, false, getCurrentPath());
                     }
+
                     errors.add(Pair.of(factory, err));
                     break;
                 }
@@ -585,7 +616,7 @@ public class PackingVisitor
                 AnnotatedTypeMirror rhsType = targetChecker.getTypeFactory().getAnnotatedType(valueExp);
                 if (!targetChecker.getTypeFactory().getTypeHierarchy().isSubtype(rhsType, lhsType)) {
                     if (targetChecker instanceof LatticeSubchecker latticeSubchecker) {
-                        ((LatticeVisitor) latticeSubchecker.getVisitor()).amendSmtResultForValue(lhsType, rhsType, lhs, false);
+                        latticeSubchecker.getVisitor().amendSmtResultForValue(lhsType, rhsType, lhs, false);
                     }
                     errors.add(Pair.of(factory, err));
                     break;
@@ -604,7 +635,7 @@ public class PackingVisitor
             ExpressionTree lhs = (ExpressionTree) varTree;
             AnnotatedTypeMirror xType = atypeFactory.getReceiverType(lhs);
 
-            if (atypeFactory.isDependableField(lhs)) {
+            if (PackingAnnotatedTypeFactory.isDependableField(lhs)) {
                 if (lhs instanceof MemberSelectTree && !((MemberSelectTree) lhs).getExpression().toString().equals("this")) {
                     checker.reportError(varTree, "initialization.write.unowned.dependable.field");
                     return false;
@@ -805,7 +836,7 @@ public class PackingVisitor
                     if (errorAtField) {
                         // Issue each error at the relevant field
                         for (VariableElement f : uninitializedFields) {
-                            checker.reportError(f, errorMsg, f.getSimpleName());
+                            targetChecker.reportError(f, errorMsg, f.getSimpleName());
                         }
                     } else {
                         // Issue all the errors at the relevant constructor
@@ -813,7 +844,7 @@ public class PackingVisitor
                         for (VariableElement f : uninitializedFields) {
                             fieldsString.add(f.getSimpleName());
                         }
-                        checker.reportError(tree, errorMsg, fieldsString);
+                        targetChecker.reportError(tree, errorMsg, fieldsString);
                     }
                 }
             }

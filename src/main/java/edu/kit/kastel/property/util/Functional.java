@@ -16,10 +16,9 @@
  */
 package edu.kit.kastel.property.util;
 
-import java.util.stream.Stream;
-
 import com.google.common.collect.Streams;
-import org.checkerframework.javacutil.Pair;
+
+import java.util.stream.Stream;
 
 public final class Functional {
 

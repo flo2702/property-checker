@@ -23,6 +23,7 @@ import edu.kit.kastel.property.lattice.parser.LatticeParser;
 import edu.kit.kastel.property.lattice.parser.ParseException;
 import edu.kit.kastel.property.packing.PackingClientAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
+import edu.kit.kastel.property.util.Pair;
 import edu.kit.kastel.property.util.UnorderedPair;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.common.basetype.BaseTypeChecker;
@@ -34,7 +35,9 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.framework.util.DefaultQualifierKindHierarchy;
 import org.checkerframework.framework.util.QualifierKindHierarchy;
 import org.checkerframework.framework.util.dependenttypes.DependentTypesHelper;
-import org.checkerframework.javacutil.*;
+import org.checkerframework.javacutil.AnnotationBuilder;
+import org.checkerframework.javacutil.AnnotationUtils;
+import org.checkerframework.javacutil.BugInCF;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.util.Elements;
@@ -64,6 +67,7 @@ public final class LatticeAnnotatedTypeFactory
 
             this.lattice = parsedLattice;
         } catch (IOException | ParseException e) {
+            System.err.println("Failed to init LatticeChecker for: " + latticeChecker.getLatticeFile());
             e.printStackTrace();
             System.exit(1);
         }
@@ -139,6 +143,11 @@ public final class LatticeAnnotatedTypeFactory
             }
             return null;
         }
+    }
+
+    @Override
+    protected String getFlowdotFilenamePostfix() {
+        return "" + getChecker().getIdent();
     }
 
     @Override

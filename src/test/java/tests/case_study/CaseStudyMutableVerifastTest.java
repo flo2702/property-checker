@@ -16,7 +16,6 @@
  */
 package tests.case_study;
 
-import org.junit.Ignore;
 import org.junit.runners.Parameterized.Parameters;
 import tests.property.PropertyCheckerTest;
 
@@ -24,18 +23,17 @@ import java.io.File;
 import java.util.List;
 
 @SuppressWarnings("nls")
-@Ignore
 public class CaseStudyMutableVerifastTest extends PropertyCheckerTest {
     public CaseStudyMutableVerifastTest(List<File> testFiles) {
         super(
                 testFiles,
-                        "tests/case_study/_case_study_mutable/lattice_agedover_verifast"
-                		+ ",tests/case_study/_case_study_mutable/lattice_allowedfor_verifast"
-                        + ",tests/case_study/_case_study_mutable/lattice_interval_verifast"
-                        + ",tests/case_study/_case_study_mutable/lattice_empty_verifast"
-                        + ",tests/case_study/_case_study_mutable/lattice_sign_verifast"
-                        + ",tests/case_study/_case_study_mutable/lattice_sorted_verifast"
-                        //+ ",tests/case_study/_case_study_mutable/lattice_inv_verifast",
+                        "tests/case_study/_case_study_mutable/lattice_agedover"
+                		+ ",tests/case_study/_case_study_mutable/lattice_allowedfor"
+                        + ",tests/case_study/_case_study_mutable/lattice_interval"
+                        + ",tests/case_study/_case_study_mutable/lattice_empty"
+                        + ",tests/case_study/_case_study_mutable/lattice_sign"
+                        + ",tests/case_study/_case_study_mutable/lattice_sorted"
+                        //+ ",tests/case_study/_case_study_mutable/lattice_inv",
                 ,
                 "tests/case_study/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",

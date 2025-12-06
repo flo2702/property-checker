@@ -8,6 +8,7 @@ import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.checker.PropertyAnnotatedTypeFactory;
 import edu.kit.kastel.property.checker.PropertyChecker;
 import edu.kit.kastel.property.config.Config;
+import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
@@ -237,9 +238,10 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         }
     }
 
-    protected static List<VariableElement> nonStaticFieldsInFrame(TypeMirror frame) {
+    protected static List<VariableElement> nonStaticDependableFieldsInFrame(TypeMirror frame) {
         List<VariableElement> res = ElementFilter.fieldsIn(TypesUtils.getTypeElement(frame).getEnclosedElements());
         res.removeIf(ElementUtils::isStatic);
+        res.removeIf(f -> !PackingAnnotatedTypeFactory.isDependableField(f));
         return res;
     }
 

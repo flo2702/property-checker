@@ -33,7 +33,7 @@ public class CaseStudyMutableVerifastTest extends PropertyCheckerTest {
                         + ",tests/case_study/_case_study_mutable/lattice_empty"
                         + ",tests/case_study/_case_study_mutable/lattice_sign"
                         + ",tests/case_study/_case_study_mutable/lattice_sorted"
-                        //+ ",tests/case_study/_case_study_mutable/lattice_inv",
+                        + ",tests/case_study/_case_study_mutable/lattice_inv"
                 ,
                 "tests/case_study/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",

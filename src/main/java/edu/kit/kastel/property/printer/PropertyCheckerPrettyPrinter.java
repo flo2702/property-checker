@@ -188,23 +188,6 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         }
     }
 
-    @Override
-    public void visitReturn(JCTree.JCReturn tree) {
-        try {
-            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
-            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
-            if (unpackFrame != null) {
-                printUnpackStatement(enclMethod, unpackFrame.toString());
-            } else if (packFrame != null) {
-                printPackStatement(enclMethod, packFrame.toString());
-            }
-        } catch (IOException e) {
-            throw new java.io.UncheckedIOException(e);
-        }
-
-        super.visitReturn(tree);
-    }
-
     protected void printInferredPackingStatements(Tree tree) {
         try {
             TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(tree);
@@ -270,6 +253,11 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         return unannotatedTypeName(type, false);
     }
 
+    protected String unannotatedSimpleTypeName(JCTree tree) {
+        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
+        return unannotatedSimpleTypeName(type, false);
+    }
+
     protected String unannotatedNullableTypeName(JCTree tree) {
         AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedType(tree);
         return unannotatedTypeName(type, true);
@@ -278,6 +266,11 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
     protected String unannotatedTypeNameLhs(JCTree tree) {
         AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
         return unannotatedTypeName(type, false);
+    }
+
+    protected String unannotatedSimpleTypeNameLhs(JCTree tree) {
+        AnnotatedTypeMirror type = results.get(0).getTypeFactory().getAnnotatedTypeLhs(tree);
+        return unannotatedSimpleTypeName(type, false);
     }
 
     protected String unannotatedNullableTypeNameLhs(JCTree tree) {
@@ -289,8 +282,16 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         return unannotatedTypeName(type, false);
     }
 
+    protected String unannotatedSimpleTypeName(AnnotatedTypeMirror type) {
+        return unannotatedSimpleTypeName(type, false);
+    }
+
     protected String unannotatedTypeName(AnnotatedTypeMirror type, boolean nullable) {
         return unannotatedTypeName(type.getUnderlyingType(), nullable);
+    }
+
+    protected String unannotatedSimpleTypeName(AnnotatedTypeMirror type, boolean nullable) {
+        return unannotatedSimpleTypeName(type.getUnderlyingType(), nullable);
     }
 
     protected String unannotatedTypeName(TypeMirror type, boolean nullable) {
@@ -311,6 +312,14 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         return (!nullable || type.getKind() == TypeKind.VOID || type.getKind().isPrimitive()
                 ? "" : "/*@nullable@*/ ")
                 + unannotatedTypeName;
+    }
+
+    protected String unannotatedSimpleTypeName(TypeMirror type, boolean nullable) {
+        String result = unannotatedTypeName(type, nullable);
+        if (!result.contains(".")) {
+            return result;
+        }
+        return result.substring(result.lastIndexOf('.') + 1);
     }
 
     public Name getEnclClassName() {

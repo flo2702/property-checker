@@ -16,6 +16,7 @@
  */
 package edu.kit.kastel.property.checker;
 
+import com.google.common.io.Files;
 import com.sun.source.tree.*;
 import com.sun.source.util.TreePath;
 import com.sun.tools.javac.tree.JCTree;
@@ -102,6 +103,7 @@ public final class PropertyVisitor extends PackingVisitor {
                 // LatticeVisitors are reused, but result contents are compilation-unit-specific, so we reset them
                 results.forEach(LatticeVisitor.Result::clear);
             } else if (outputLangOption.equals(Config.OUTPUT_LANG_VERIFAST)) {
+                copyVerifastMetaFiles(checker);
                 JavaVerifastPrinter printer = new JavaVerifastPrinter(results, checker, out);
                 printer.printUnit((JCTree.JCCompilationUnit) checker.getVisitor().getPath().getCompilationUnit(), null);
                 System.out.println(String.format(
@@ -118,6 +120,25 @@ public final class PropertyVisitor extends PackingVisitor {
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+    }
+
+    private static boolean copiedVerifastMetaFiles = false;
+
+    private static void copyVerifastMetaFiles(PropertyChecker checker) throws IOException {
+        if (copiedVerifastMetaFiles) {
+            return;
+        }
+        copiedVerifastMetaFiles = true;
+
+        File inputDir = Paths.get(checker.getInputDir()).toFile();
+
+        for (Object o : org.apache.commons.io.FileUtils.listFiles(inputDir, null, true)) {
+            File f = (File) o;
+            if (f.getName().startsWith("_") || f.getName().endsWith(".jarsrc")) {
+                File out = Paths.get(checker.getOutputDir(), f.getAbsolutePath().substring(inputDir.getAbsolutePath().length())).toFile();
+                Files.copy(f, out);
+            }
         }
     }
 

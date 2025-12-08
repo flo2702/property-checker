@@ -358,9 +358,9 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                     TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
                     TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
                     if (unpackFrame != null) {
-                        printUnpackStatement(enclMethod, unpackFrame.toString());
+                        printUnpackStatement(enclMethod, unannotatedTypeName(unpackFrame, false));
                     } else if (packFrame != null) {
-                        printPackStatement(enclMethod, packFrame.toString());
+                        printPackStatement(enclMethod, unannotatedTypeName(packFrame, false));
                     }
                 } catch (IOException e) {
                     throw new java.io.UncheckedIOException(e);
@@ -760,6 +760,23 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
     }
 
     @Override
+    public void visitReturn(JCTree.JCReturn tree) {
+        try {
+            TypeMirror unpackFrame = propertyFactory.getInferredUnpackFrame(enclMethod);
+            TypeMirror packFrame = propertyFactory.getInferredPackFrame(enclMethod);
+            if (unpackFrame != null) {
+                printUnpackStatement(enclMethod, unannotatedTypeName(unpackFrame, false));
+            } else if (packFrame != null) {
+                printPackStatement(enclMethod, unannotatedTypeName(packFrame, false));
+            }
+        } catch (IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+
+        super.visitReturn(tree);
+    }
+
+    @Override
     protected void printPackStatement(Tree tree, String frame) throws IOException {
         AssertionSequence assertionsSeq = new AssertionSequence();
 
@@ -825,8 +842,6 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
         }
 
         try {
-            printInferredPackingStatements(tree);
-
             // Explicit packing statement
             if (tree.meth.toString().equals("Packing.pack")) {
                 printPackStatement(tree, TreeUtils.elementFromUse(((MemberSelectTree) tree.args.get(1)).getExpression()).toString());

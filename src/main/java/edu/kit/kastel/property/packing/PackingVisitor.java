@@ -164,7 +164,7 @@ public class PackingVisitor
 
         // Infer pack statement if possible
         if (varFrame.equals(valFrame) && ((Type) valFrame).isFinal()) {
-            inferPackStatement(methodTree, varFrame);
+            inferPackStatement(enclosingStatement(methodTree), varFrame);
             return true;
         }
         if (types.isSubtype(varFrame, valFrame)) {
@@ -178,7 +178,7 @@ public class PackingVisitor
             checkFieldsInitializedUpToFrame(methodTree, varFrame);
             // checkFieldsInitializedUpToFrame reports an error if necessary.
             // We return true to not report another error.
-            inferPackStatement(methodTree, varFrame);
+            inferPackStatement(enclosingStatement(methodTree), varFrame);
             return true;
         }
 

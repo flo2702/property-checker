@@ -15,6 +15,7 @@ import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.TreePathUtil;
+import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.VariableElement;
@@ -337,18 +338,23 @@ public interface CooperativeVisitor {
         }
     }
 
-    public static class Invariant {
+    class Invariant {
 
-        private String fieldName;
+        private VariableElement field;
         private AnnotatedTypeMirror type;
 
-        public Invariant(String fieldName, AnnotatedTypeMirror type) {
-            this.fieldName = fieldName;
+        public Invariant(VariableElement field, AnnotatedTypeMirror type) {
+            this.field = field;
             this.type = type;
         }
 
-        public String getFieldName() {
-            return fieldName;
+        public Invariant(VariableTree field, AnnotatedTypeMirror type) {
+            this.field = TreeUtils.variableElementFromTree(field);
+            this.type = type;
+        }
+
+        public VariableElement getField() {
+            return field;
         }
 
         public AnnotatedTypeMirror getType() {

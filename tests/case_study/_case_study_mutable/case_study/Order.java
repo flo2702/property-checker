@@ -15,7 +15,7 @@ public final class Order {
     public final @AgedOver(age="witness") Customer customer;
     public final @AllowedFor(age="witness") Product product;
 
-    @VerifastEnsuresClause("[_](this.customer |-> customer &*& this.product |-> product &*& this.witness |-> witness)")
+    @VerifastEnsuresClause("this_customer_e == customer &*& this_product_e == product &*& this_witness_e == witness")
     @JMLClause("ensures this.customer == customer && this.product == product && this.witness == witness;")
     @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.initialization.fields.uninitialized :: error: allowedfor.initialization.fields.uninitialized

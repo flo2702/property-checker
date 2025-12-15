@@ -22,10 +22,10 @@ public final class Node {
     // See the comment about SortedList::first in SortedList class.
     public @Dependable @Unique @Nullable @Sorted Node tail;
 
-    @VerifastRequiresClause("[_](head.product |-> ?hp &*& hp.price |-> ?hpp &*& tail.head |-> ?th &*& th.product |-> ?thp &*& thp.price |-> ?thpp &*& hpp <= thpp)")
+    @VerifastRequiresClause("[_](head.product |-> ?hp) &*& [_](hp.price |-> ?hpp) &*& [_](tail.head |-> ?th) &*& [_](th.product |-> ?thp) &*& [_](thp.price |-> ?thpp) &*& hpp <= thpp")
     @JMLClause("requires \\invariant_for(tail);")
     @JMLClause("requires head.product.price <= tail.head.product.price;")
-    @VerifastEnsuresClause("[_](this.tail |-> tail &*& this.head |-> head)")
+    @VerifastEnsuresClause("this_tail_e == tail &*& this_head_e == head")
     @JMLClause("ensures this.tail == tail && this.head == head;")
     @JMLClause("assignable \\nothing;") @Pure
     @EnsuresReadOnly(value="#2")
@@ -38,7 +38,7 @@ public final class Node {
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
-    @VerifastEnsuresClause("[_](this.tail |-> null &*& this.head |-> head)")
+    @VerifastEnsuresClause("this_tail_e == null &*& this_head_e == head")
     @JMLClause("ensures this.head == head && this.tail == null;")
     @JMLClause("assignable \\nothing;") @Pure
     public
@@ -52,7 +52,7 @@ public final class Node {
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint))");
     }
 
-    @VerifastEnsuresClause("[_](this_head_e == this_head_r || this_head_e == newHead)")
+    @VerifastEnsuresClause("(this_head_e == this_head_r || this_head_e == newHead)")
     @JMLClause("ensures this.head == \\old(this.head) || this.head == newHead;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint;")
@@ -66,8 +66,8 @@ public final class Node {
         }
     }
 
-    @VerifastRequiresClause("[_](this_head_r.product |-> ?hp &*& hp.price |-> ?hpp &*& newHead.product |-> ?thp &*& thp.price |-> ?thpp &*& hpp >= thpp)")
-    @VerifastEnsuresClause("[_](this.head |-> newHead)")
+    @VerifastRequiresClause("[_](this_head_r.product |-> ?hp) &*& [_](hp.price |-> ?hpp) &*& [_](newHead.product |-> ?thp) &*& [_](thp.price |-> ?thpp) &*& hpp >= thpp")
+    @VerifastEnsuresClause("this_head_e == newHead")
     @JMLClause("requires newHead.product.price <= this.head.product.price;")
     @JMLClause("ensures this.head == newHead;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
@@ -86,8 +86,8 @@ public final class Node {
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
     }
 
-    @VerifastRequiresClause("[_](this_head_r.product |-> ?hp &*& hp.price |-> ?hpp &*& newHead.product |-> ?thp &*& thp.price |-> ?thpp &*& hpp >= thpp)")
-    @VerifastEnsuresClause("[_](this_head_r == this_head_r)")
+    @VerifastRequiresClause("[_](this_head_r.product |-> ?hp) &*& [_](hp.price |-> ?hpp) &*& [_](newHead.product |-> ?thp) &*& [_](thp.price |-> ?thpp) &*& hpp >= thpp")
+    @VerifastEnsuresClause("this_head_r == this_head_r")
     @JMLClause("requires this.head.product.price <= newHead.product.price;")
     @JMLClause("ensures this.head == \\old(this.head);")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
@@ -113,21 +113,21 @@ public final class Node {
         Assert.immutableFieldEqual("this.tail.head", "newHead", "this.tail.head.product.price", "newHead.product.price");
     }
 
-    @VerifastEnsuresClause("[_](this.head |-> result)")
+    @VerifastEnsuresClause("this_head_e == result")
     @JMLClause("ensures \\result == this.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @Sorted Node this) {
         return this.head;
     }
 
-    @VerifastEnsuresClause("[_](this.tail |-> result)")
+    @VerifastEnsuresClause("this_tail_e == result")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @ReadOnly @Nullable Node getTail(@Unique @Sorted Node this) {
         return this.tail;
     }
 
-    @VerifastEnsuresClause("[_](this.tail |-> result)")
+    @VerifastEnsuresClause("this_tail_e == result")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("ensures \\result != null ==> \\invariant_for(\\result);")
     @JMLClause("assignable this.packed;")

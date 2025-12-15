@@ -14,7 +14,7 @@ public final class Customer {
     public final String name;
     public final @Dependable @Interval(min="14", max="150") int age;
 
-    @VerifastEnsuresClause("[_](this.name |-> name &*& this.age |-> age)")
+    @VerifastEnsuresClause("this_name_e == name &*& this_age_e == age")
     @JMLClause("ensures this.name == name && this.age == age;")
     @JMLClause("assignable \\nothing;") @Pure
     // :: error: agedover.inconsistent.constructor.type

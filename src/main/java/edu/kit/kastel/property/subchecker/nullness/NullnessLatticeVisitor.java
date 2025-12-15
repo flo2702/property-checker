@@ -128,7 +128,7 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
             if (node.getModifiers().getFlags().contains(Modifier.STATIC)) {
                 result.addStaticInvariant(
                         getEnclClassName().toString(),
-                        new LatticeVisitor.Invariant(node.getName().toString(), varType));
+                        new LatticeVisitor.Invariant(node, varType));
 
                 if (node.getInitializer() != null) {
                     result.addStaticInitializer(getEnclClassName().toString(), Union.left(node));
@@ -136,7 +136,7 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
             } else {
                 result.addInstanceInvariant(
                         getEnclClassName().toString(),
-                        new LatticeVisitor.Invariant(node.getName().toString(), varType));
+                        new LatticeVisitor.Invariant(node, varType));
 
                 if (node.getInitializer() != null) {
                     result.addInstanceInitializer(getEnclClassName().toString(), Union.left(node));

@@ -205,7 +205,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             if (node.getModifiers().getFlags().contains(Modifier.STATIC)) {
                 result.addStaticInvariant(
                         getEnclClassName().toString(),
-                        new Invariant(node.getName().toString(), varType));
+                        new Invariant(node, varType));
 
                 if (node.getInitializer() != null) {
                     result.addStaticInitializer(getEnclClassName().toString(), Union.left(node));
@@ -213,7 +213,7 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             } else {   
             	result.addInstanceInvariant(
             			getEnclClassName().toString(),
-            			new CooperativeVisitor.Invariant(node.getName().toString(), varType));
+            			new CooperativeVisitor.Invariant(node, varType));
 
             	if (node.getInitializer() != null) {
                     result.addInstanceInitializer(getEnclClassName().toString(), Union.left(node));

@@ -20,7 +20,7 @@ public final class SortedList {
 
     public @Dependable @Unique @Nullable @Sorted Node first;
 
-    @VerifastEnsuresClause("[_](this.first |-> null)")
+    @VerifastEnsuresClause("this_first_e == null")
     @JMLClause("ensures this.first == null;")
     @JMLClause("ensures \\fresh(this.footprint);")
     @JMLClause("assignable \\nothing;") @Pure

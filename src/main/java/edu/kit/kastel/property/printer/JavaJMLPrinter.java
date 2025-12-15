@@ -223,7 +223,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                                     true,
                                     ConditionLocation.INVARIANT_STATIC,
                                     pa,
-                                    containingClassName + "." + invariant.getFieldName()
+                                    containingClassName + "." + invariant.getField().getSimpleName()
                             );
                             printlnAligned(inv);
                         }
@@ -236,7 +236,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                                     true,
                                     ConditionLocation.INVARIANT_INSTANCE,
                                     pa,
-                                    invariant.getFieldName()
+                                    invariant.getField().getSimpleName().toString()
                             );
                             printlnAligned(inv.toStringOp("packed <: " + containingClassName, "==>"));
                         }

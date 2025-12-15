@@ -469,10 +469,18 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             AnnotatedTypeMirror receiverType = propertyFactory.getMethodReturnType(tree);
             AnnotationMirror receiverOutputType = propertyFactory.getInitialized();
             if (trampoline) {
-                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                        receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "?result_" + f.getSimpleName() + "_e"));
-                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                        receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_e"));
+                if (propertyFactory.isSideEffectFree(element)) {
+                    // Reuse precondition variables if method is side-effect free
+                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                            receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_r"));
+                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                            receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_r"));
+                } else {
+                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                            receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "?result_" + f.getSimpleName() + "_e"));
+                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                            receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_e"));
+                }
             } else {
                 verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
                         receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_e"));

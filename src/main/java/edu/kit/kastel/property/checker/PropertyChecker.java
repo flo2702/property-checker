@@ -243,7 +243,7 @@ public final class PropertyChecker extends PackingChecker {
     private List<String> getShouldNotUseTrampoline() {
         if (shouldNotUseTrampoline == null) {
             String option = getOption(Config.SHOULD_NOT_USE_TRAMPOLINE_OPTION, "");
-            shouldNotUseTrampoline = Arrays.asList(option.split(Config.SPLIT));
+            shouldNotUseTrampoline = option.isEmpty() ? List.of() : Arrays.asList(option.split(Config.SPLIT));
         }
 
         return Collections.unmodifiableList(shouldNotUseTrampoline);

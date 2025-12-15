@@ -528,7 +528,9 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                     if (!wt) {
                         ++methodCallPostconditions;
                     } else {
-                        ++freeMethodCallPostconditions;
+                        if (!pat.isTrivial()) {
+                            ++freeMethodCallPostconditions;
+                        }
                     }
                 }
             }
@@ -553,7 +555,9 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                         if (!wt) {
                             ++methodCallPostconditions;
                         } else {
-                            ++freeMethodCallPostconditions;
+                            if (!pat.isTrivial()) {
+                                ++freeMethodCallPostconditions;
+                            }
                         }
                     }
                 }

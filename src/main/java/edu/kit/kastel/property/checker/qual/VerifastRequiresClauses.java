@@ -14,18 +14,16 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-package edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual;
-
-import org.checkerframework.framework.qual.SubtypeOf;
+package edu.kit.kastel.property.checker.qual;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@SubtypeOf({Okasaki.class})
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE_USE})
-public @interface OkasakiNonEmpty {
+@Target({ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.TYPE})
+public @interface VerifastRequiresClauses {
 
+    VerifastRequiresClause[] value() default {};
 }

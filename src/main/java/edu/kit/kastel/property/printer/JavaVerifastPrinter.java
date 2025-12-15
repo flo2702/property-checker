@@ -25,8 +25,7 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.checker.qual.VerifastClauseTranslationOnly;
-import edu.kit.kastel.property.checker.qual.VerifastClausesTranslationOnly;
+import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
@@ -94,7 +93,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         TypeMirror frame = getTypeFrame(packingType, varType);
         List<String> args = new ArrayList<>();
         args.add(varName);
-        nonStaticDependableFieldsInFrame(frame).stream().filter(Predicate.not(ElementUtils::isStatic)).map(fieldNamer).forEach(args::add);
+        nonStaticFieldsInFrame(frame).stream().filter(Predicate.not(ElementUtils::isStatic)).map(fieldNamer).forEach(args::add);
         return new PredicateUse(getOwnFieldsPredicateName(frame), args);
     }
 
@@ -107,7 +106,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
         return new PredicateUse(
                 getFieldTypesPredicateName(frame),
-                nonStaticDependableFieldsInFrame(frame).stream()
+                nonStaticFieldsInFrame(frame).stream()
                         .filter(Predicate.not(ElementUtils::isStatic))
                         .map(fieldNamer).toList());
     }
@@ -120,17 +119,24 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         String containingClassName = tree.sym.getQualifiedName().toString();
         if (tree.type != null) {
             //TODO support static fields in Verifast
-            List<VariableElement> allFields = nonStaticDependableFieldsInFrame(tree.type);
+            List<VariableElement> allFields = nonStaticFieldsInFrame(tree.type);
 
             StringJoiner fieldTypesPredBody = new StringJoiner(" &*& ");
 
             for (VariableElement field : allFields) {
-                if (!field.asType().getKind().isPrimitive()) {
-                    AnnotationMirror packingType = propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
-                    String fieldName = field.getSimpleName().toString();
-                    fieldTypesPredBody.add(getOwnFieldsPredicateUse(packingType, field, f -> "?" + fieldName + "_" + f.getSimpleName()).toString());
-                    fieldTypesPredBody.add(getFieldTypesPredicateUse(packingType, field, f -> fieldName + "_" + f.getSimpleName()).toString());
+                if (field.asType().getKind().isPrimitive()) {
+                    continue;
                 }
+                if (unannotatedTypeName(field.asType(), false).startsWith("java.")) {
+                    // Don't create OwnFields and FieldTypes predicates for library types
+                    // TODO add cmd option to customize this behavior
+                    continue;
+                }
+
+                AnnotationMirror packingType = propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
+                String fieldName = field.getSimpleName().toString();
+                fieldTypesPredBody.add(getOwnFieldsPredicateUse(packingType, field, f -> "?" + fieldName + "_" + f.getSimpleName()).toString());
+                fieldTypesPredBody.add(getFieldTypesPredicateUse(packingType, field, f -> fieldName + "_" + f.getSimpleName()).toString());
             }
 
             for (LatticeVisitor.Result wellTypedness : results) {
@@ -142,8 +148,12 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
                 for (LatticeVisitor.Invariant invariant : wellTypedness.getInstanceInvariants(containingClassName)) {
                     PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(invariant.getType());
-                    String fieldName = invariant.getFieldName();
-                    fieldTypesPredBody.add(new PredicateUse(pa, fieldName, f -> fieldName + "_" + f.getSimpleName()).toString());
+                    PropertyAnnotationType pat = pa.getAnnotationType();
+
+                    if (!pat.isInv() && !pat.isTrivial()) {
+                        String fieldName = invariant.getFieldName();
+                        fieldTypesPredBody.add(new PredicateUse(pa, fieldName, f -> fieldName + "_" + f.getSimpleName()).toString());
+                    }
                 }
             }
 
@@ -225,12 +235,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 if (!isInterface(tree)) {
                     //TODO support static initialiters in Verifast
                     //printStaticInitializers();
-                }
-
-                println();
-                getVerifastClauseValues(enclClass.sym).forEach(c -> printlnAligned("//@ " + c));
-                if (TRANSLATION_RAW) {
-                    getVerifastClauseValuesTranslationOnly(enclClass.sym).forEach(c -> printlnAligned("//@ " + c));
                 }
 
                 println();
@@ -322,7 +326,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
             print(paramsStr);
 
-
             print(")");
 
             if (tree.thrown.nonEmpty()) {
@@ -338,10 +341,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             println();
             indent();
             printlnAligned(verifastContract.toString());
-            getVerifastClauseValues(element).forEach(this::printlnAligned);
-            if (TRANSLATION_RAW) {
-                getVerifastClauseValuesTranslationOnly(element).forEach(this::printlnAligned);
-            }
             undent();
 
             if (tree.body != null) {
@@ -407,136 +406,158 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
         VerifastContract verifastContract = new VerifastContract(true, trampoline);
 
-        {
-            List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
-            List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
+        List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
+        List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
 
-            if (!inputPackingTypes.isEmpty() ) {
-                if (!ElementUtils.isStatic(element) && !isConstructor(tree)) {
-                    AnnotationMirror receiverInputType = inputPackingTypes.get(0);
-                    if (receiverInputType == null) {
-                        receiverInputType = propertyFactory.getInitialized();
-                    }
+        if (!ElementUtils.isStatic(element) && !isConstructor(tree) && !inputPackingTypes.isEmpty()) {
+            AnnotationMirror receiverInputType = inputPackingTypes.get(0);
+            if (receiverInputType == null) {
+                receiverInputType = propertyFactory.getInitialized();
+            }
 
-                    if (receiverInputType != null) {
-                        AnnotatedTypeMirror receiverType;
-                        if (isConstructor(tree)) {
-                            receiverType = propertyFactory.getMethodReturnType(tree);
-                        } else {
-                            receiverType = propertyFactory.getAnnotatedType(tree).getReceiverType();
-                        }
+            if (receiverInputType != null) {
+                AnnotatedTypeMirror receiverType;
+                if (isConstructor(tree)) {
+                    receiverType = propertyFactory.getMethodReturnType(tree);
+                } else {
+                    receiverType = propertyFactory.getAnnotatedType(tree).getReceiverType();
+                }
 
-                        verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
-                                receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                        verifastContract.addRequiresPred(getFieldTypesPredicateUse(
-                                receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));
+                verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
+                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                verifastContract.addRequiresPred(getFieldTypesPredicateUse(
+                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));
+            }
+        }
+
+        if (isConstructor(tree)) {
+            AnnotatedTypeMirror receiverType = propertyFactory.getMethodReturnType(tree);
+            AnnotationMirror receiverOutputType = propertyFactory.getInitialized();
+            if (trampoline) {
+                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                        receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "?result_" + f.getSimpleName() + "_e"));
+                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                        receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_e"));
+            } else {
+                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                        receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_e"));
+                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                        receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_e"));
+            }
+        } else if (!outputPackingTypes.isEmpty()) {
+            AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
+            if (receiverOutputType == null && !ElementUtils.isStatic(element)) {
+                receiverOutputType = propertyFactory.getInitialized();
+            }
+            if (receiverOutputType != null) {
+                VariableElement el = TreeUtils.elementFromDeclaration(tree.getReceiverParameter());
+                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                        receiverOutputType, el, f -> "?this_" + f.getSimpleName() + "_e"));
+                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                        receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_e"));
+            }
+        }
+
+        if (!ElementUtils.isStatic(element) && !isConstructor(tree)) {
+            for (CooperativeVisitor.Result wellTypedness : results) {
+                Lattice lattice = wellTypedness.getLattice();
+                AnnotatedTypeMirror.AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
+                List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
+                AnnotationMirror receiverOutputType = methodOutputTypes.get(0);
+                Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
+                boolean outputWt = !illTypedMethodOutputParams.contains(0);
+                AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
+
+                if (requiredReceiverType != null) {
+                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
+                    PropertyAnnotationType pat = pa.getAnnotationType();
+
+                    if (!pat.isTrivial() && !pat.isInv()) {
+                        verifastContract.addRequiresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
                     }
                 }
 
-                {
+                if (receiverOutputType != null) {
+                    PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverOutputType);
+                    PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    AnnotationMirror receiverOutputType = outputPackingTypes.get(0);
-                    if (receiverOutputType == null && !ElementUtils.isStatic(element) && !isConstructor(tree)) {
-                        receiverOutputType = propertyFactory.getInitialized();
-                    }
-                    if (receiverOutputType != null) {
-                        if (isConstructor(tree)) {
-                            AnnotatedTypeMirror receiverType = propertyFactory.getMethodReturnType(tree);
-                            verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                                    receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_e"));
-                            verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                                    receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_e"));
-                        } else {
-                            VariableElement el = TreeUtils.elementFromDeclaration(tree.getReceiverParameter());
-                            verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                                    receiverOutputType, el, f -> "?this_" + f.getSimpleName() + "_e"));
-                            verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                                    receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_e"));
-                        }
+                    if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                        verifastContract.addEnsuresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                     }
                 }
-
-                if (!ElementUtils.isStatic(element)) {
-                    for (CooperativeVisitor.Result wellTypedness : results) {
-                        GenericAnnotatedTypeFactory<?, ?, ?, ?> factory = wellTypedness.getTypeFactory();
-                        Lattice lattice = wellTypedness.getLattice();
-                        AnnotatedTypeMirror.AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                        List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
-                        AnnotationMirror receiverOutputType = methodOutputTypes.get(0);
-                        Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
-                        boolean outputWt = !illTypedMethodOutputParams.contains(0);
-
-                        if (!isConstructor(tree)) {
-                            AnnotatedTypeMirror requiredReceiverType = method.getReceiverType();
-                            if (!AnnotationUtils.areSame(requiredReceiverType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
-                                verifastContract.addRequiresPred(new PredicateUse(lattice.getEffectivePropertyAnnotation(requiredReceiverType), "this", f -> "this_" + f.getSimpleName() + "_r"));
-                            }
-                        }
-
-                        if (!outputWt && !AnnotationUtils.areSame(receiverOutputType, getTop(factory))) {
-                            verifastContract.addEnsuresPred(new PredicateUse(lattice.getPropertyAnnotation(receiverOutputType), "this", f -> "this_" + f.getSimpleName() + "_e"));
-                        }
-                        if (!outputWt) {
-                            ++methodCallPostconditions;
-                        } else {
-                            ++freeMethodCallPostconditions;
-                        }
+                if (!trampoline) {
+                    if (!outputWt) {
+                        ++methodCallPostconditions;
+                    } else {
+                        ++freeMethodCallPostconditions;
                     }
                 }
             }
+        }
 
-            if (isConstructor(tree)) {
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
-                    AnnotatedTypeMirror receiverType = factory.getMethodReturnType(tree);
+        if (isConstructor(tree)) {
+            for (LatticeVisitor.Result wellTypedness : results) {
+                GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
+                AnnotatedTypeMirror receiverType = factory.getMethodReturnType(tree);
 
-                    if (AnnotationUtils.areSame(receiverType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
-                        continue;
+                Lattice lattice = wellTypedness.getLattice();
+                boolean wt = wellTypedness.isWellTypedConstructor(tree);
+
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(receiverType);
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                    if (trampoline) {
+                        verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
+                    } else {
+                        verifastContract.addEnsuresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                     }
+                }
+                if (!trampoline) {
+                    if (!wt) {
+                        if (!pat.isTrivial() && !pat.isInv()) {
+                            ++methodCallPostconditions;
+                        }
+                    } else {
+                        ++freeMethodCallPostconditions;
+                    }
+                }
+            }
+        } else {
+            {
+                AnnotatedTypeMirror returnType = propertyFactory.getMethodReturnType(tree);
+                if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
+                        && returnType.getKind() != TypeKind.VOID && !returnType.getKind().isPrimitive()
+                        && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)), getTop(propertyFactory))) {
+                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                            returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
+                            returnType.getUnderlyingType(), "result",
+                            f -> "?result_" + f.getSimpleName() + "_e"));
+                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                            returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
+                            returnType.getUnderlyingType(), "result",
+                            f -> "result_" + f.getSimpleName() + "_e"));
+                }
+            }
 
-                    Lattice lattice = wellTypedness.getLattice();
-                    boolean wt = wellTypedness.isWellTypedConstructor(tree);
+            for (LatticeVisitor.Result wellTypedness : results) {
+                Lattice lattice = wellTypedness.getLattice();
+                GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
+                AnnotatedTypeMirror returnType = factory.getMethodReturnType(tree);
 
-                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(receiverType);
+                if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
+                        && returnType.getKind() != TypeKind.VOID
+                        && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                    boolean wt = wellTypedness.isWellTypedMethodResult(tree);
+                    PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(returnType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    if (!wt&& !pat.isTrivial() && !pat.isInv()) {
-                        verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "this_" + f.getSimpleName() + "_e"));
-                        ++methodCallPostconditions;
+                    if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                        verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
                     }
-                }
-            } else {
-                {
-                    AnnotatedTypeMirror returnType = propertyFactory.getMethodReturnType(tree);
-                    if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
-                            && returnType.getKind() != TypeKind.VOID && !returnType.getKind().isPrimitive()
-                            && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)), getTop(propertyFactory))) {
-                        verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                                returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
-                                returnType.getUnderlyingType(), "result",
-                                f -> "?result_" + f.getSimpleName() + "_e"));
-                        verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                                returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
-                                returnType.getUnderlyingType(), "result",
-                                f -> "result_" + f.getSimpleName() + "_e"));
-                    }
-                }
-
-                for (LatticeVisitor.Result wellTypedness : results) {
-                    Lattice lattice = wellTypedness.getLattice();
-                    GenericAnnotatedTypeFactory<?,?,?,?> factory = wellTypedness.getTypeFactory();
-                    AnnotatedTypeMirror returnType = factory.getMethodReturnType(tree);
-
-                    if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
-                            && returnType.getKind() != TypeKind.VOID
-                            && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
-                        boolean wt = wellTypedness.isWellTypedMethodResult(tree);
-                        PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(returnType);
-                        PropertyAnnotationType pat = pa.getAnnotationType();
-
+                    if (!trampoline) {
                         if (!wt) {
                             if (!pat.isTrivial() && !pat.isInv()) {
-                                verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
                                 ++methodCallPostconditions;
                             }
                         } else {
@@ -545,65 +566,71 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     }
                 }
             }
+        }
 
-            for (int i = 0; i < tree.getParameters().size(); ++i) {
-                Type javacType = tree.getParameters().get(i).type;
-                if (javacType.getKind().isPrimitive()) {
-                    break;
+        for (int i = 0; i < tree.getParameters().size(); ++i) {
+            Type javacType = tree.getParameters().get(i).type;
+            if (javacType.toString().endsWith("[]")) {
+                // TODO
+                // array types in Verifast
+            }
+
+            VariableTree param = tree.getParameters().get(i);
+            String paramName = param.getName().toString();
+            VariableElement el = TreeUtils.elementFromDeclaration(param);
+
+            if (!javacType.toString().startsWith("java.") && !javacType.getKind().isPrimitive()) {
+                // Don't create OwnFields and FieldTypes predicates for library types
+                // TODO add cmd option to customize this behavior
+
+                verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
+                        inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_r"
+                ));
+                verifastContract.addRequiresPred(getFieldTypesPredicateUse(
+                        inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
+                ));
+                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                        outputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_e"
+                ));
+                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                        outputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_e"
+                ));
+            }
+
+            for (CooperativeVisitor.Result wellTypedness : results) {
+                Lattice lattice = wellTypedness.getLattice();
+                AnnotatedTypeMirror.AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
+                AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
+                List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
+                AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
+                Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
+                boolean outputWt = !illTypedMethodOutputParams.contains(i + 1);
+                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(paramType);
+                PropertyAnnotationType pat = pa.getAnnotationType();
+
+                if (!pat.isTrivial() && !pat.isInv()) {
+                    verifastContract.addRequiresPred(new PredicateUse(lattice.getEffectivePropertyAnnotation(paramType), paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
                 }
-                if (javacType.toString().endsWith("[]")) {
-                    // TODO
-                    // array types in Verifast
+                if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                    verifastContract.addEnsuresPred(new PredicateUse(lattice.getPropertyAnnotation(paramOutputType), paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
                 }
 
-                VariableTree param = tree.getParameters().get(i);
-                String paramName = param.getName().toString();
-                VariableElement el = TreeUtils.elementFromDeclaration(param);
-                
-                if (!javacType.toString().startsWith("java.")) {
-                    // Don't create OwnFields and FieldTypes predicates for library types
-                    // TODO add cmd option to customize this behavior
-
-                    verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
-                            inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_r"
-                    ));
-                    verifastContract.addRequiresPred(getFieldTypesPredicateUse(
-                            inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
-                    ));
-                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                            outputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_e"
-                    ));
-                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                            outputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_e"
-                    ));
-                }
-
-                for (CooperativeVisitor.Result wellTypedness : results) {
-                    GenericAnnotatedTypeFactory<?, ?, ?, ?> factory = wellTypedness.getTypeFactory();
-                    Lattice lattice = wellTypedness.getLattice();
-                    AnnotatedTypeMirror.AnnotatedExecutableType method = wellTypedness.getTypeFactory().getAnnotatedType(tree);
-                    AnnotatedTypeMirror paramType = method.getParameterTypes().get(i);
-                    List<AnnotationMirror> methodOutputTypes = wellTypedness.getMethodOutputTypes(tree);
-                    AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
-                    Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
-                    boolean outputWt = !illTypedMethodOutputParams.contains(i + 1);
-
-                    if (!AnnotationUtils.areSame(paramType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
-                        verifastContract.addRequiresPred(new PredicateUse(lattice.getEffectivePropertyAnnotation(paramType), paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
-                    }
-                    if (!outputWt && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
-                        verifastContract.addEnsuresPred(new PredicateUse(lattice.getPropertyAnnotation(paramOutputType), paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
-                    }
-
-                    if (!trampoline) {
-                        if (!outputWt) {
-                            ++methodCallPostconditions;
-                        } else {
-                            ++freeMethodCallPostconditions;
-                        }
+                if (!trampoline) {
+                    if (!outputWt) {
+                        ++methodCallPostconditions;
+                    } else {
+                        ++freeMethodCallPostconditions;
                     }
                 }
             }
+        }
+
+        Function<String, String> clauseTransformer = trampoline && isConstructor(tree) ? clause -> clause.replace("this", "result") : Function.identity();
+        getVerifastRequiresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract::addRequiresPred);
+        getVerifastEnsuresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract::addEnsuresPred);
+        if (TRANSLATION_RAW) {
+            getVerifastRequiresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract::addRequiresPred);
+            getVerifastEnsuresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract::addEnsuresPred);
         }
 
         //TODO
@@ -615,15 +642,16 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
     protected void printTrampoline(JCTree.JCMethodDecl tree, boolean printBody) {
         try {
             VerifastContract verifastContract = contractForMethod(tree, true);
-            ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
 
             align();
             printExpr(tree.mods);
 
             if (isConstructor(tree)) {
+                print("static ");
                 print(enclClass != null ? enclClass.sym.getSimpleName() : tree.name);
+                print(" ");
+                print(trampolineName(tree.name));
             } else {
-                TypeKind k = propertyFactory.getAnnotatedType(tree).getReturnType().getKind();
                 if (tree.restype.type instanceof Type.TypeVar && !propertyFactory.getChecker().shouldKeepGenerics()) {
                     print("Object");
                 } else {
@@ -657,10 +685,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             println();
             indent();
             printlnAligned(verifastContract.toString());
-            getVerifastClauseValues(element).forEach(this::printlnAligned);
-            if (TRANSLATION_RAW) {
-                getVerifastClauseValuesTranslationOnly(element).forEach(this::printlnAligned);
-            }
             undent();
 
             if (printBody) {
@@ -734,6 +758,10 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
     @Override
     protected void printPackStatement(Tree tree, String frame) throws IOException {
+        if (frame.equals("Object") || frame.equals("java.lang.Object")) {
+            return;
+        }
+
         List<VerifastClause> assertions = new ArrayList<>();
         List<VerifastContract> assumptions = new ArrayList<>();
 
@@ -949,13 +977,13 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         if (!underlyingType.getKind().isPrimitive()) {
             assertion.add(getOwnFieldsPredicateUse(
                     packingType,
-                    underlyingType, subject,
+                    underlyingType, "arg",
                     f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
             ));
 
-            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "?arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -972,7 +1000,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
             PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(type);
             if (wt) {
-                assumption.addEnsuresPred(new PredicateUse(pa, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+                assumption.addEnsuresPred(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
             } else {
                 assertion.add(new PredicateUse(
@@ -999,17 +1027,24 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         AnnotatedTypeMirror packingTypeMirror = propertyFactory.getAnnotatedTypeLhs(tree);
         AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
         TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
+        String frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
+        if (frame.equals("Object")) {
+            packingTypeMirror = propertyFactory.getAnnotatedType(tree.getInitializer());
+            packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
+            underlyingType = packingTypeMirror.getUnderlyingType();
+            frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
+        }
 
-        if (!underlyingType.getKind().isPrimitive()) {
+        if (!underlyingType.getKind().isPrimitive() && !frame.equals("Object")) {
             assertion.add(getOwnFieldsPredicateUse(
                     packingType,
-                    underlyingType, subject,
+                    underlyingType, "arg",
                     f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
             ));
 
-            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "?arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -1026,7 +1061,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
             PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
             if (wt) {
-                assumption.addEnsuresPred(new PredicateUse(pa, subject, f -> "arg_" + f.getSimpleName() + "_a"));
+                assumption.addEnsuresPred(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
             } else {
                 assertion.add(new PredicateUse(
@@ -1140,7 +1175,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             println(";");
 
             if (conditions.second != null) {
-                printlnAligned(String.format("assume%s(%s);", enclClassAssumptionCounter++, varName));
+                printlnAligned(String.format("assume%s(%s);", enclClassAssumptionCounter++, tempVar));
             }
             if (conditions.first != null) {
                 printlnAligned(conditions.first.toString());
@@ -1189,9 +1224,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
     }
 
     @SuppressWarnings("unchecked")
-    protected List<String> getVerifastClauseValues(Element element) {
-        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, edu.kit.kastel.property.checker.qual.VerifastClauses.class);
-        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, edu.kit.kastel.property.checker.qual.VerifastClause.class);
+    protected List<String> getVerifastRequiresClauseValues(Element element) {
+        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastRequiresClauses.class);
+        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastRequiresClause.class);
 
         if (verifastClauses == null && verifastClause == null) {
             return Collections.emptyList();
@@ -1208,9 +1243,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
     }
 
     @SuppressWarnings("unchecked")
-    protected List<String> getVerifastClauseValuesTranslationOnly(Element element) {
-        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastClausesTranslationOnly.class);
-        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastClauseTranslationOnly.class);
+    protected List<String> getVerifastEnsuresClauseValues(Element element) {
+        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastEnsuresClauses.class);
+        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastEnsuresClause.class);
 
         if (verifastClauses == null && verifastClause == null) {
             return Collections.emptyList();
@@ -1226,17 +1261,56 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
     }
 
-    public static final String PREDICATE_PKG_NAME = "_predicates";
-    public static final String PREDICATE_CLASS_NAME = "_Predicates";
+    @SuppressWarnings("unchecked")
+    protected List<String> getVerifastRequiresClauseValuesTranslationOnly(Element element) {
+        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastRequiresClausesTranslationOnly.class);
+        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastRequiresClauseTranslationOnly.class);
+
+        if (verifastClauses == null && verifastClause == null) {
+            return Collections.emptyList();
+        } else if (verifastClauses != null) {
+            return (List<String>) AnnotationUtils.getElementValue(verifastClauses, "value", List.class, true).stream()
+                    .map(o -> {
+                        String s = ((Attribute.Compound) o).values.head.snd.toString();
+                        return s.substring(1, s.length() - 1).replace("\\\\", "\\");
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.singletonList(AnnotationUtils.getElementValue(verifastClause, "value", String.class, true));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    protected List<String> getVerifastEnsuresClauseValuesTranslationOnly(Element element) {
+        AnnotationMirror verifastClauses = propertyFactory.getDeclAnnotation(element, VerifastEnsuresClausesTranslationOnly.class);
+        AnnotationMirror verifastClause = propertyFactory.getDeclAnnotation(element, VerifastEnsuresClauseTranslationOnly.class);
+
+        if (verifastClauses == null && verifastClause == null) {
+            return Collections.emptyList();
+        } else if (verifastClauses != null) {
+            return (List<String>) AnnotationUtils.getElementValue(verifastClauses, "value", List.class, true).stream()
+                    .map(o -> {
+                        String s = ((Attribute.Compound) o).values.head.snd.toString();
+                        return s.substring(1, s.length() - 1).replace("\\\\", "\\");
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            return Collections.singletonList(AnnotationUtils.getElementValue(verifastClause, "value", String.class, true));
+        }
+    }
 
     public static class VerifastContract {
 
         private VerifastClause requiresClause;
         private VerifastClause ensuresClause;
+        private List<String> additionalRequiresClauses;
+        private List<String> additionalEnsuresClauses;
 
         public VerifastContract(boolean requiresPermission, boolean ensuresPermission) {
             this.requiresClause = new VerifastClause("requires", requiresPermission);
             this.ensuresClause = new VerifastClause("ensures", ensuresPermission);
+            this.additionalRequiresClauses = new ArrayList<>();
+            this.additionalEnsuresClauses = new ArrayList<>();
         }
 
         public void addRequiresPred(PredicateUse req) {
@@ -1247,17 +1321,31 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             ensuresClause.add(ens);
         }
 
-        public void addRequiresPreds(Collection<PredicateUse> reqs) {
-            requiresClause.addAll(reqs);
+        public void addRequiresPred(String req) {
+            additionalRequiresClauses.add(req);
         }
 
-        public void addEnsuresPreds(Collection<PredicateUse> enss) {
-            ensuresClause.addAll(enss);
+        public void addEnsuresPred(String ens) {
+            additionalEnsuresClauses.add(ens);
         }
 
         @Override
         public String toString() {
-            return requiresClause.toString() + "\n" + ensuresClause.toString();
+            StringJoiner req = new StringJoiner(" &*& ");
+            StringJoiner ens = new StringJoiner(" &*& ");
+            additionalRequiresClauses.forEach(req::add);
+            additionalEnsuresClauses.forEach(ens::add);
+
+            String reqStr = requiresClause.toString();
+            if (req.length() != 0) {
+                reqStr = reqStr.substring(0, reqStr.length() - 1) + " &*& " + req + ";";
+            }
+            String ensStr = ensuresClause.toString();
+            if (ens.length() != 0) {
+                ensStr = ensStr.substring(0, ensStr.length() - 1) + " &*& " + ens + ";";
+            }
+
+            return reqStr + "\n" + ensStr;
         }
     }
 

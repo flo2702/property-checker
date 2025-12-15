@@ -18,10 +18,10 @@ package edu.kit.kastel.property.checker.qual;
 
 import java.lang.annotation.*;
 
-@Repeatable(VerifastClauses.class)
+@Repeatable(VerifastRequiresClausesTranslationOnly.class)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.TYPE})
-public @interface VerifastClause {
+public @interface VerifastRequiresClauseTranslationOnly {
 
     String value();
 }

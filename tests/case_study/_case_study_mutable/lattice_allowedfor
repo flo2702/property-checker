@@ -25,3 +25,4 @@ annotation AllowedFor(int age) case_study.Product
 relation AllowedForNoone() <: AllowedFor(y) :<==> "true";
 relation AllowedFor(x) <: AllowedForEveryone() :<==> "true";
 relation AllowedFor(x) <: AllowedFor(y) :<==> "§x§ < §y§";
+relation AllowedForNoone() <: AllowedForEveryone() :<==> "true";

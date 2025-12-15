@@ -221,9 +221,14 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
         }
     }
 
-    protected static List<VariableElement> nonStaticDependableFieldsInFrame(TypeMirror frame) {
+    protected static List<VariableElement> nonStaticFieldsInFrame(TypeMirror frame) {
         List<VariableElement> res = ElementFilter.fieldsIn(TypesUtils.getTypeElement(frame).getEnclosedElements());
         res.removeIf(ElementUtils::isStatic);
+        return res;
+    }
+
+    protected static List<VariableElement> nonStaticDependableFieldsInFrame(TypeMirror frame) {
+        List<VariableElement> res = nonStaticFieldsInFrame(frame);
         res.removeIf(f -> !PackingAnnotatedTypeFactory.isDependableField(f));
         return res;
     }

@@ -25,3 +25,4 @@ annotation AgedOver(int age) case_study.Customer
 relation AgedBottom() <: AgedOver(y) :<==> "true";
 relation AgedOver(x) <: AgedAny() :<==> "true";
 relation AgedOver(x) <: AgedOver(y) :<==> "§x§ > §y§";
+relation AgedBottom() <: AgedAny() :<==> "true";

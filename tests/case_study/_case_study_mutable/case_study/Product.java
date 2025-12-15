@@ -15,6 +15,7 @@ public final class Product {
     public final @Interval(min="0", max="2147483647") int price;
     public final @Dependable @Interval(min="0", max="18") int ageRestriction;
 
+    @VerifastEnsuresClause("[_](this.title |-> title &*& this.price |-> price &*& this.ageRestriction |-> ageRestriction)")
     @JMLClause("ensures this.title == title && this.price == price && this.ageRestriction == ageRestriction;")
     @JMLClause("assignable \\nothing;") @Pure
     // :: error: allowedfor.inconsistent.constructor.type
@@ -27,25 +28,10 @@ public final class Product {
         this.ageRestriction = ageRestriction;
     }
 
+    @VerifastEnsuresClause("[_](this.price |-> result)")
     @JMLClause("ensures \\result == this.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public int getPrice(@MaybeAliased Product this) {
         return price;
-    }
-
-    @JMLClause("ensures \\result.title == title && \\result.price == price && \\result.ageRestriction == 18;")
-    @JMLClause("assignable \\nothing;") @Pure
-    public static @AllowedFor(age="18") Product product18(
-            String title,
-            @Interval(min="0", max="2147483647") int price) {
-        return new Product(title, price, 18);
-    }
-
-    @JMLClause("ensures \\result.title == title && \\result.price == price && \\result.ageRestriction == 6;")
-    @JMLClause("assignable \\nothing;") @Pure
-    public static @AllowedFor(age="6") Product product6(
-            String title,
-            @Interval(min="0", max="2147483647") int price) {
-        return new Product(title, price, 6);
     }
 }

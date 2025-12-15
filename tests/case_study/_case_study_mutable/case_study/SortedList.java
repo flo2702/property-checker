@@ -18,15 +18,9 @@ import org.checkerframework.dataflow.qual.*;
 @JMLClause("public invariant this.first != null ==> \\disjoint(this.*, this.first.footprint);")
 public final class SortedList {
 
-    // Turning @Sorted into a JML invariant instead of a property type
-    // would be prettier and less confusing than having every Node
-    // be of type @Sorted Node. But it would also mean that the JML invariant
-    // of Node would depend on Node::head.product.price, which makes the framing clauses and
-    // dependency contracts very awkward to prove.
-    // So doing the sortedness as a property type and everything else
-    // (well-formedness of list structure, general framing) as JML is easiest.
     public @Dependable @Unique @Nullable @Sorted Node first;
 
+    @VerifastEnsuresClause("[_](this.first |-> null)")
     @JMLClause("ensures this.first == null;")
     @JMLClause("ensures \\fresh(this.footprint);")
     @JMLClause("assignable \\nothing;") @Pure
@@ -53,6 +47,7 @@ public final class SortedList {
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first.footprint)");
     }
 
+    @VerifastEnsuresClause("[_](this_first_r.head |-> result)")
     @JMLClause("ensures \\old(this.first).head == \\result;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
     @JMLClause("assignable this.footprint, this.first.packed;")
@@ -66,6 +61,7 @@ public final class SortedList {
         return result;
     }
 
+    @VerifastEnsuresClause("this_first_r == null ? result == null : this_first_r.head |-> result")
     @JMLClause("ensures \\old(this.first) != null ==> \\result == \\old(this.first).head;")
     @JMLClause("ensures \\old(this.first) == null ==> \\result == null;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
@@ -79,6 +75,7 @@ public final class SortedList {
         }
     }
 
+    @VerifastEnsuresClause("[_](this_first_e.head |-> result)")
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @NonEmpty @Inv SortedList this) {

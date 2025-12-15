@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.TYPE})
-public @interface VerifastClausesTranslationOnly {
+public @interface VerifastRequiresClausesTranslationOnly {
 
-    VerifastClauseTranslationOnly[] value() default {};
+    VerifastRequiresClauseTranslationOnly[] value() default {};
 }

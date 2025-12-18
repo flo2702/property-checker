@@ -113,14 +113,16 @@ public final class Node {
         Assert.immutableFieldEqual("this.tail.head", "newHead", "this.tail.head.product.price", "newHead.product.price");
     }
 
-    @VerifastEnsuresClause("this_head_e == result")
+    @VerifastRequiresClause("this.head |-> ?this_head_r")
+    @VerifastEnsuresClause("this_head_r == result &*& [_](this.head |-> this_head_r)")
     @JMLClause("ensures \\result == this.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @Sorted Node this) {
         return this.head;
     }
 
-    @VerifastEnsuresClause("this_tail_e == result")
+    @VerifastRequiresClause("this.tail |-> ?this_tail_r")
+    @VerifastEnsuresClause("this_tail_r == result &*& [_](this.tail |-> this_tail_r)")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @ReadOnly @Nullable Node getTail(@Unique @Sorted Node this) {

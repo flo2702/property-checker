@@ -28,7 +28,9 @@ public final class Order {
         this.product = product;
     }
 
-    @VerifastEnsuresClause("[_](this_product_e.price |-> result)")
+    @VerifastRequiresClause("this.product |-> ?this_product_r &*& this_product_r != null &*& this_product_r.price |-> ?this_product_price_r")
+    @VerifastEnsuresClause("[_](this.product |-> this_product_r) &*& this_product_r != null &*& [_](this_product_r.price |-> this_product_price_r)")
+    @VerifastEnsuresClause("this_product_price_r == result")
     @JMLClause("ensures \\result == this.product.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public int getPrice(@MaybeAliased Order this) {

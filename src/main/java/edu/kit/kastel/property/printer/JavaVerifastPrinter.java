@@ -130,8 +130,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         List<VariableElement> allFields = nonStaticFieldsInFrame(tree.type);
 
         StringJoiner fieldTypesPredBody = new StringJoiner(" &*& ");
+        Map<VariableElement, List<PredicateUse>> fieldTypes = new HashMap<>();
 
         for (VariableElement field : allFields) {
+            fieldTypes.put(field, new ArrayList<>());
+
             if (field.asType().getKind().isPrimitive()) {
                 continue;
             }
@@ -142,8 +145,10 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
 
             AnnotationMirror packingType = propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
-            fieldTypesPredBody.add(getOwnFieldsPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> "?" + fieldOfFieldNamer.apply(field, f)).toString());
-            fieldTypesPredBody.add(getFieldTypesPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f)).toString());
+            PredicateUse ownFields = getOwnFieldsPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> "?" + fieldOfFieldNamer.apply(field, f));
+            PredicateUse fieldsOfFieldTypes = getFieldTypesPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f));
+            fieldTypes.get(field).add(ownFields);
+            fieldTypes.get(field).add(fieldsOfFieldTypes);
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -159,8 +164,20 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
                 if (!pat.isInv() && !pat.isTrivial()) {
                     VariableElement field = invariant.getField();
-                    fieldTypesPredBody.add(new PredicateUse(pa, fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f), typeArgTransformer).toString());
+                    fieldTypes.get(field).add(new PredicateUse(pa, fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f), typeArgTransformer));
                 }
+            }
+        }
+
+        for (Map.Entry<VariableElement, List<PredicateUse>> entry : fieldTypes.entrySet()) {
+            StringJoiner sj = new StringJoiner(" &*& ");
+            entry.getValue().stream().map(PredicateUse::toString).forEach(sj::add);
+            if (entry.getKey().asType().getKind().isPrimitive()) {
+                if (sj.length() > 0) {
+                    fieldTypesPredBody.add("("+sj+")");
+                }
+            } else {
+                fieldTypesPredBody.add(String.format("(%s == null ? true : %s)", fieldNamer.apply(entry.getKey()), sj.length() == 0 ? "true" : ("("+sj+")")));
             }
         }
 

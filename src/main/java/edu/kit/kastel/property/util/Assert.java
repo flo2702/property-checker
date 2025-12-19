@@ -12,4 +12,8 @@ public final class Assert {
 
     public static void _assert(String a) { }
     public static void _assume(String a) { }
+
+    public static void _verifast_assert(String a) { }
+    public static void _verifast_open(String a) { }
+    public static void _verifast_close(String a) { }
 }

@@ -891,6 +891,9 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                 JCLiteral assertion = (JCLiteral) tree.args.get(0);
                 print(String.format("//@ assume %s", assertion.getValue()));
                 return;
+            } else if (tree.meth.toString().startsWith("Assert._verifast")) {
+                // Verifast statement; ignore in JML
+                return;
             }
 
             AnnotatedExecutableType invokedMethod = propertyFactory.methodFromUse(tree).executableType;

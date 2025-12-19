@@ -444,7 +444,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
     protected VerifastContract contractForMethod(JCTree.JCMethodDecl tree, boolean trampoline) {
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-        VerifastContract verifastContract = new VerifastContract(true, trampoline);
+        VerifastContract verifastContract = new VerifastContract(!trampoline, trampoline);
 
         List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
         List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
@@ -465,8 +465,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
                 // Side-effect free methods use no heap chunks except for the result.
                 if (!propertyFactory.isSideEffectFree(element)) {
-                    // Open OwnFields and FieldTypes predicates of receiver directly to avoid errors in Verifast.
-                    // But leave them closed in trampoline methods for brevity.
+                    // Open OwnFields and FieldTypes predicates of receiver directly to avoid errors when verifying the
+                    // method body.
+                    // But leave them closed in trampoline methods to avoid missing heap chunks in callers.
                     if (trampoline) {
                         verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
                                 receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
@@ -926,11 +927,22 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 // Probably unneeded in separation logic
                 return;
             } else if (tree.meth.toString().equals("Assert._assert")) {
-                //TODO
-                // Assert._assert and Assert._assume take JML expression as argument
-                // Introduce separate assert/assume functions for JML and Verifast
+                // Assert._assert and Assert._assume take JML expression as argument; ignored in Verifast
                 return;
             } else if (tree.meth.toString().equals("Assert._assume")) {
+                // Assert._assert and Assert._assume take JML expression as argument; ignored in Verifast
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_assert")) {
+                JCTree.JCLiteral assertion = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ assert %s", assertion.getValue()));
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_open")) {
+                JCTree.JCLiteral pred = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ open %s", pred.getValue()));
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_close")) {
+                JCTree.JCLiteral pred = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ close %s", pred.getValue()));
                 return;
             }
 

@@ -1,7 +1,6 @@
 package case_study;
 
-import edu.kit.kastel.property.util.Packing;
-import edu.kit.kastel.property.util.Ghost;
+import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.checker.qual.*;
 import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
@@ -54,9 +53,11 @@ public final class SortedList {
     @EnsuresPossiblyEmpty(value="this")
     // :: error: inv.contracts.postcondition.not.satisfied
     public Order remove(@Unique @NonEmpty @Inv SortedList this) {
+        Assert._verifast_open("NonEmpty(this_first_r)");
         // :: error: nullness.dereference.of.nullable
         Order result = this.first.getHead();
         this.first = this.first.stealTail();
+        Assert._verifast_close("NonEmpty(this_first_r)");
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint)");
         return result;
     }
@@ -77,7 +78,7 @@ public final class SortedList {
 
     @VerifastRequiresClause("this.first |-> ?this_first_r &*& this_first_r != null &*& this_first_r.head |-> ?this_first_head_r")
     @VerifastEnsuresClause("[_](this.first |-> this_first_r) &*& this_first_r != null &*& [_](this_first_r.head |-> this_first_head_r)")
-    @VerifastEnsuresClause("[_](this_first_head_r == result)")
+    @VerifastEnsuresClause("this_first_head_r == result")
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @NonEmpty @Inv SortedList this) {

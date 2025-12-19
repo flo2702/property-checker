@@ -11,7 +11,10 @@ import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.packing.PackingAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeAnnotatedTypeFactory;
+import edu.kit.kastel.property.subchecker.nullness.NullnessLatticeSubchecker;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
@@ -45,8 +48,10 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
     public static boolean TRANSLATION_RAW = false;
 
     protected List<LatticeVisitor.Result> results;
+    CooperativeVisitor.Result nullnessResult;
     protected PropertyAnnotatedTypeFactory propertyFactory;
     protected ExclusivityAnnotatedTypeFactory exclFactory;
+    protected NullnessLatticeAnnotatedTypeFactory nullnessFactory;
 
     protected int assertions = 0;
     protected int assumptions = 0;
@@ -66,8 +71,10 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
             BufferedWriter out) {
         super(out, true);
         this.results = results;
+        this.nullnessResult = results.stream().filter(res -> res.getChecker() instanceof NullnessLatticeSubchecker).findAny().get();
         this.propertyFactory = propertyChecker.getPropertyFactory();
         this.exclFactory = propertyFactory.getTypeFactoryOfSubchecker(ExclusivityChecker.class);
+        this.nullnessFactory = (NullnessLatticeAnnotatedTypeFactory) nullnessResult.getTypeFactory();
 
         String translationOnlyOption = propertyChecker.getOption(Config.TRANSLATION_ONLY_OPTION);
 

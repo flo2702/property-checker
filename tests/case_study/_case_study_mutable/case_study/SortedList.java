@@ -62,7 +62,7 @@ public final class SortedList {
         return result;
     }
 
-    @VerifastEnsuresClause("this_first_r == null ? result == null : this_first_r.head |-> result")
+    @VerifastEnsuresClause("this_first_r == null ? result == null : [_](this_first_r.head |-> result)")
     @JMLClause("ensures \\old(this.first) != null ==> \\result == \\old(this.first).head;")
     @JMLClause("ensures \\old(this.first) == null ==> \\result == null;")
     @JMLClause("ensures \\new_elems_fresh(this.footprint);")
@@ -77,8 +77,7 @@ public final class SortedList {
     }
 
     @VerifastRequiresClause("this.first |-> ?this_first_r &*& this_first_r != null &*& this_first_r.head |-> ?this_first_head_r")
-    @VerifastEnsuresClause("[_](this.first |-> this_first_r) &*& this_first_r != null &*& [_](this_first_r.head |-> this_first_head_r)")
-    @VerifastEnsuresClause("this_first_head_r == result")
+    @VerifastEnsuresClause("[_](this.first |-> this_first_r) &*& this_first_r != null &*& [_](this_first_r.head |-> this_first_head_r) &*& this_first_head_r == result")
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public @MaybeAliased Order getHead(@Unique @NonEmpty @Inv SortedList this) {

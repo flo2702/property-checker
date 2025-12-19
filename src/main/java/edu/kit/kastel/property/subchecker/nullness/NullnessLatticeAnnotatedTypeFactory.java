@@ -202,6 +202,14 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         return !AnnotationUtils.containsSameByClass(getDeclAnnotations(el), NonMonotonic.class);
     }
 
+    public AnnotationMirror getNonNull() {
+        return NONNULL;
+    }
+
+    public AnnotationMirror getNullable() {
+        return NULLABLE;
+    }
+
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeBefore(JavaExpression expr, ExpressionTree tree) {
         PackingFieldAccessAnnotatedTypeFactory initFactory =
@@ -278,5 +286,4 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         res.addAnnotations(annos);
         return res;
     }
-
 }

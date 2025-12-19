@@ -16,16 +16,16 @@ public final class Main {
     }
     
     public static void main(String[] args) {
-        @AllowedFor(age="18") Product product18 = new Product("Louisiana Buzzsaw Carnage", 10, 18);
-        @AgedOver(age="18") Customer customer18 = new Customer("Alice", 18);
+        @NonNull @AllowedFor(age="18") Product product18 = new Product("Louisiana Buzzsaw Carnage", 10, 18);
+        @NonNull @AgedOver(age="18") Customer customer18 = new Customer("Alice", 18);
         Shop shop = new Shop();
 
         shop.addOrder(new Order(18, customer18, product18));
 
-        @AllowedFor(age="6") Product product6 = new Product("Tim & Jeffrey, All Episodes", 10, 6);
+        @NonNull @AllowedFor(age="6") Product product6 = new Product("Tim & Jeffrey, All Episodes", 10, 6);
         shop.addOrder(new Order(14, customer18, product6));
 
-        @AgedOver(age="14") Customer customer14 = new Customer("Bob", 14);
+        @NonNull @AgedOver(age="14") Customer customer14 = new Customer("Bob", 14);
         shop.addOrder(new Order(14, customer14, product6));
 
         shop.processNextOrder();

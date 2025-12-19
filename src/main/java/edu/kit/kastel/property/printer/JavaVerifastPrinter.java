@@ -129,15 +129,17 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         //TODO support static fields in Verifast
         List<VariableElement> allFields = nonStaticFieldsInFrame(tree.type);
 
-        StringJoiner fieldTypesPredBody = new StringJoiner(" &*& ");
-        Map<VariableElement, List<PredicateUse>> fieldTypes = new HashMap<>();
+        VerifastClause fieldTypesPredBody = new VerifastClause(null, true);
 
         for (VariableElement field : allFields) {
-            fieldTypes.put(field, new ArrayList<>());
-
+            String name = fieldNamer.apply(field);
             if (field.asType().getKind().isPrimitive()) {
+                fieldTypesPredBody.addVar(name, null);
                 continue;
             }
+
+            fieldTypesPredBody.addVar(name, name + " != null");
+
             if (unannotatedTypeName(field.asType(), false).startsWith("java.")) {
                 // Don't create OwnFields and FieldTypes predicates for library types
                 // TODO add cmd option to customize this behavior
@@ -145,10 +147,10 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
 
             AnnotationMirror packingType = propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
-            PredicateUse ownFields = getOwnFieldsPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> "?" + fieldOfFieldNamer.apply(field, f));
-            PredicateUse fieldsOfFieldTypes = getFieldTypesPredicateUse(packingType, field.asType(), fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f));
-            fieldTypes.get(field).add(ownFields);
-            fieldTypes.get(field).add(fieldsOfFieldTypes);
+            PredicateUse ownFields = getOwnFieldsPredicateUse(packingType, field.asType(), name, f -> "?" + fieldOfFieldNamer.apply(field, f));
+            PredicateUse fieldsOfFieldTypes = getFieldTypesPredicateUse(packingType, field.asType(), name, f -> fieldOfFieldNamer.apply(field, f));
+            fieldTypesPredBody.addVarPred(name, ownFields);
+            fieldTypesPredBody.addVarPred(name, fieldsOfFieldTypes);
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -164,24 +166,21 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
                 if (!pat.isInv() && !pat.isTrivial()) {
                     VariableElement field = invariant.getField();
-                    fieldTypes.get(field).add(new PredicateUse(pa, fieldNamer.apply(field), f -> fieldOfFieldNamer.apply(field, f), typeArgTransformer));
+                    String name = fieldNamer.apply(field);
+
+                    if (pat.isNonNull()) {
+                        if (!field.asType().getKind().isPrimitive()) {
+                            fieldTypesPredBody.setGuard(name, null);
+                            fieldTypesPredBody.addBefore(new PredicateUse(pa, name, f -> fieldOfFieldNamer.apply(field, f), typeArgTransformer));
+                        }
+                    } else {
+                        fieldTypesPredBody.addVarPred(name, new PredicateUse(pa, name, f -> fieldOfFieldNamer.apply(field, f), typeArgTransformer));
+                    }
                 }
             }
         }
 
-        for (Map.Entry<VariableElement, List<PredicateUse>> entry : fieldTypes.entrySet()) {
-            StringJoiner sj = new StringJoiner(" &*& ");
-            entry.getValue().stream().map(PredicateUse::toString).forEach(sj::add);
-            if (entry.getKey().asType().getKind().isPrimitive()) {
-                if (sj.length() > 0) {
-                    fieldTypesPredBody.add("("+sj+")");
-                }
-            } else {
-                fieldTypesPredBody.add(String.format("(%s == null ? true : %s)", fieldNamer.apply(entry.getKey()), sj.length() == 0 ? "true" : ("("+sj+")")));
-            }
-        }
-
-        return fieldTypesPredBody.toString();
+        return fieldTypesPredBody.toString(false);
     }
 
     protected String ownFieldsPredBody(JCClassDecl tree, String subject, Function<VariableElement, String> fieldNamer) {
@@ -469,13 +468,13 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     // method body.
                     // But leave them closed in trampoline methods to avoid missing heap chunks in callers.
                     if (trampoline) {
-                        verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
+                        verifastContract.getRequiresClause().addBefore(getOwnFieldsPredicateUse(
                                 receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                        verifastContract.addRequiresPred(getFieldTypesPredicateUse(
+                        verifastContract.getRequiresClause().addBefore(getFieldTypesPredicateUse(
                                 receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));
                     } else {
-                        verifastContract.addRequiresPredBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                        verifastContract.addRequiresPredBefore(fieldTypesPredBody(
+                        verifastContract.getRequiresClause().addBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                        verifastContract.getRequiresClause().addBefore(fieldTypesPredBody(
                                 enclClass,
                                 f -> "this_" + f.getSimpleName() + "_r",
                                 (f, ff) -> "this_" + f.getSimpleName() + "_" + ff.getSimpleName() + "_r",
@@ -490,14 +489,15 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             AnnotatedTypeMirror receiverType = propertyFactory.getMethodReturnType(tree);
             AnnotationMirror receiverOutputType = propertyFactory.getInitialized();
             if (trampoline) {
-                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                verifastContract.getEnsuresClause().addBefore("result != null");
+                verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
                         receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "?result_" + f.getSimpleName() + "_e"));
-                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
                         receiverOutputType, receiverType.getUnderlyingType(), "result", f -> "result_" + f.getSimpleName() + "_e"));
             } else {
-                verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
                         receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_e"));
-                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
                         receiverOutputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_e"));
             }
         } else if (!outputPackingTypes.isEmpty()) {
@@ -509,9 +509,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 VariableElement el = TreeUtils.elementFromDeclaration(tree.getReceiverParameter());
                 if (!propertyFactory.isSideEffectFree(element)) {
                     // Side-effect free methods use no heap chunks except for the result.
-                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
+                    verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
                             receiverOutputType, el, f -> "?this_" + f.getSimpleName() + "_e"));
-                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
+                    verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
                             receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_e"));
                 }
             }
@@ -534,7 +534,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     if (!pat.isTrivial() && !pat.isInv()) {
                         if (!propertyFactory.isSideEffectFree(element)) {
                             // Side-effect free methods use no heap chunks except for the result.
-                            verifastContract.addRequiresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
+                            verifastContract.getRequiresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
                         }
                     }
                 }
@@ -546,7 +546,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
                         if (!propertyFactory.isSideEffectFree(element)) {
                             // Side-effect free methods use no heap chunks except for the result.
-                            verifastContract.addEnsuresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                         }
                     }
                 }
@@ -573,9 +573,9 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
                 if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
                     if (trampoline) {
-                        verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
                     } else {
-                        verifastContract.addEnsuresPred(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                     }
                 }
                 if (!trampoline) {
@@ -592,16 +592,21 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             {
                 AnnotatedTypeMirror returnType = propertyFactory.getMethodReturnType(tree);
                 if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
-                        && returnType.getKind() != TypeKind.VOID && !returnType.getKind().isPrimitive()
+                        && returnType.getKind() != TypeKind.VOID
                         && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)), getTop(propertyFactory))) {
-                    verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                            returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
-                            returnType.getUnderlyingType(), "result",
-                            f -> "?result_" + f.getSimpleName() + "_e"));
-                    verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                            returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
-                            returnType.getUnderlyingType(), "result",
-                            f -> "result_" + f.getSimpleName() + "_e"));
+                    if (returnType.getKind().isPrimitive()) {
+                        verifastContract.getEnsuresClause().addVar("result", null);
+                    } else {
+                        verifastContract.getEnsuresClause().addVar("result", "result != null");
+                        verifastContract.getEnsuresClause().addVarPred("result", getOwnFieldsPredicateUse(
+                                returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
+                                returnType.getUnderlyingType(), "result",
+                                f -> "?result_" + f.getSimpleName() + "_e"));
+                        verifastContract.getEnsuresClause().addVarPred("result", getFieldTypesPredicateUse(
+                                returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)),
+                                returnType.getUnderlyingType(), "result",
+                                f -> "result_" + f.getSimpleName() + "_e"));
+                    }
                 }
             }
 
@@ -618,7 +623,14 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
                     if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
-                        verifastContract.addEnsuresPred(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
+                        if (pat.isNonNull()) {
+                            if (!returnType.getKind().isPrimitive()) {
+                                verifastContract.getEnsuresClause().setGuard("result", null);
+                                verifastContract.getEnsuresClause().addVarPred("result", new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
+                            }
+                        } else {
+                            verifastContract.getEnsuresClause().addVarPred("result", new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
+                        }
                     }
                     if (!trampoline) {
                         if (!wt) {
@@ -644,22 +656,23 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             String paramName = param.getName().toString();
             VariableElement el = TreeUtils.elementFromDeclaration(param);
 
-            if (!javacType.toString().startsWith("java.") && !javacType.getKind().isPrimitive()) {
-                // Don't create OwnFields and FieldTypes predicates for library types
-                // TODO add cmd option to customize this behavior
+            if (javacType.getKind().isPrimitive()) {
+                verifastContract.getRequiresClause().addVar(paramName, null);
+                verifastContract.getEnsuresClause().addVar(paramName, null);
+            } else {
+                verifastContract.getRequiresClause().addVar(paramName, paramName + " != null");
+                verifastContract.getEnsuresClause().addVar(paramName, paramName + " != null");
+                if (!javacType.toString().startsWith("java.")) {
+                    // Don't create OwnFields and FieldTypes predicates for library types
+                    // TODO add cmd option to customize this behavior
 
-                verifastContract.addRequiresPred(getOwnFieldsPredicateUse(
-                        inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_r"
-                ));
-                verifastContract.addRequiresPred(getFieldTypesPredicateUse(
-                        inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
-                ));
-                /*verifastContract.addEnsuresPred(getOwnFieldsPredicateUse(
-                        outputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_e"
-                ));
-                verifastContract.addEnsuresPred(getFieldTypesPredicateUse(
-                        outputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_e"
-                ));*/
+                    verifastContract.getRequiresClause().addVarPred(paramName, getOwnFieldsPredicateUse(
+                            inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_r"
+                    ));
+                    verifastContract.getRequiresClause().addVarPred(paramName, getFieldTypesPredicateUse(
+                            inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
+                    ));
+                }
             }
 
             for (CooperativeVisitor.Result wellTypedness : results) {
@@ -670,14 +683,27 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 AnnotationMirror paramOutputType = methodOutputTypes.get(i + 1);
                 Set<Integer> illTypedMethodOutputParams = wellTypedness.getIllTypedMethodOutputParams(tree);
                 boolean outputWt = !illTypedMethodOutputParams.contains(i + 1);
-                PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(paramType);
-                PropertyAnnotationType pat = pa.getAnnotationType();
+                PropertyAnnotation inputPa = lattice.getEffectivePropertyAnnotation(paramType);
+                PropertyAnnotationType inputPat = inputPa.getAnnotationType();
+                PropertyAnnotation outputPa = lattice.getPropertyAnnotation(paramOutputType);
+                PropertyAnnotationType outputPat = outputPa.getAnnotationType();
 
-                if (!pat.isTrivial() && !pat.isInv()) {
-                    verifastContract.addRequiresPred(new PredicateUse(lattice.getEffectivePropertyAnnotation(paramType), paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                if (inputPat.isNonNull()) {
+                    if (!paramType.getKind().isPrimitive()) {
+                        verifastContract.getRequiresClause().setGuard(paramName, null);
+                        verifastContract.getRequiresClause().addBefore(new PredicateUse(inputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                    }
+                } else if (!inputPat.isTrivial() && !inputPat.isInv()) {
+                    verifastContract.getRequiresClause().addVarPred(paramName, new PredicateUse(inputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
                 }
-                if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
-                    verifastContract.addEnsuresPred(new PredicateUse(lattice.getPropertyAnnotation(paramOutputType), paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+
+                if (outputPat.isNonNull()) {
+                    if (!paramType.getKind().isPrimitive()) {
+                        verifastContract.getEnsuresClause().setGuard(paramName, null);
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                    }
+                } else if ((!outputWt || trampoline) && !outputPat.isTrivial() && !outputPat.isInv()) {
+                    verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
                 }
 
                 if (!trampoline) {
@@ -691,11 +717,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
 
         Function<String, String> clauseTransformer = trampoline && isConstructor(tree) ? clause -> clause.replace("this", "result") : Function.identity();
-        getVerifastRequiresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract::addRequiresPredAfter);
-        getVerifastEnsuresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract::addEnsuresPredAfter);
+        getVerifastRequiresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract.getRequiresClause()::addAfter);
+        getVerifastEnsuresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract.getEnsuresClause()::addAfter);
         if (TRANSLATION_RAW) {
-            getVerifastRequiresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract::addRequiresPredAfter);
-            getVerifastEnsuresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract::addEnsuresPredAfter);
+            getVerifastRequiresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract.getRequiresClause()::addAfter);
+            getVerifastEnsuresClauseValuesTranslationOnly(element).stream().map(clauseTransformer).forEach(verifastContract.getEnsuresClause()::addAfter);
         }
 
         //TODO
@@ -844,7 +870,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 receiverType = propertyFactory.getAnnotatedType(enclMethod).getReceiverType();
             }
 
-            receiverPacked.add(getOwnFieldsPredicateUse(receiverPackingType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+            receiverPacked.addBefore(getOwnFieldsPredicateUse(receiverPackingType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
             printlnAligned(receiverPacked.toString());
         }
 
@@ -854,19 +880,30 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         for (VariableElement field : allFields) {
             VerifastClause fieldAssertion = new VerifastClause("assert", false);
             VerifastContract fieldAssumption = new VerifastContract(false, false);
+            String name = field.getSimpleName().toString();
 
-            if (!field.asType().getKind().isPrimitive()) {
+            // For fields that are not syntactically typed NonNull, we do not generate any assumptions
+            boolean nonNull = nullnessFactory.getAnnotatedType(field).hasEffectiveAnnotation(nullnessFactory.getNonNull())
+                    && !nullnessResult.getUninitializedFields(tree).contains(field);
+
+            if (field.asType().getKind().isPrimitive()) {
+                fieldAssertion.addVar(name, null);
+                fieldAssumption.getRequiresClause().addVar("arg", null);
+                fieldAssumption.getEnsuresClause().addVar("arg", null);
+            } else {
+                fieldAssertion.addVar(name, "this_" + name + "_a" + enclClassAssertionSequenceCounter + " != null");
+                fieldAssumption.getRequiresClause().addVar("arg", null);
+                fieldAssumption.getEnsuresClause().addVar("arg", null);
+
                 AnnotationMirror packingType =
                         propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
-                String name = field.getSimpleName().toString();
-                fieldAssertion.add(getOwnFieldsPredicateUse(
+                fieldAssertion.addVarPred(name, getOwnFieldsPredicateUse(
                         packingType,
                         field.asType(), "this_" + name + "_a" + enclClassAssertionSequenceCounter,
                         f -> "?" + name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
-
-                fieldAssumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
-                fieldAssumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
-                fieldAssumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                fieldAssumption.getRequiresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+                fieldAssumption.getEnsuresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                fieldAssumption.getEnsuresClause().addVarPred("arg", getFieldTypesPredicateUse(packingType, field.asType(), "arg", f -> "arg_" + f.getSimpleName() + "_a"));
             }
 
             for (LatticeVisitor.Result result : results) {
@@ -878,23 +915,34 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 if (!pat.isTrivial() && !pat.isInv()) {
                     boolean wt = !uninitFields.contains(field);
 
-                    if (wt) {
-                        String name = field.getSimpleName().toString();
-                        fieldAssumption.addEnsuresPred(new PredicateUse(pa, name, f -> "arg_" + f.getSimpleName() + "_a"));
+                    if (pat.isNonNull()) {
+                        if (!type.getKind().isPrimitive()) {
+                            fieldAssertion.setGuard(name, null);
+                            fieldAssertion.addBefore(new PredicateUse(
+                                    pa,
+                                    "this_" + name + "_a" + enclClassAssertionSequenceCounter,
+                                    f -> name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                            fieldAssumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                        }
+                    } else if (nonNull && wt) {
+                        fieldAssumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, name, f -> "arg_" + f.getSimpleName() + "_a"));
                     } else {
-                        String name = field.getSimpleName().toString();
-                        fieldAssertion.add(new PredicateUse(
+                        fieldAssertion.addVarPred(name, new PredicateUse(
                                 pa,
                                 "this_" + name + "_a" + enclClassAssertionSequenceCounter,
                                 f -> name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
                     }
-                    assumptions.add(fieldAssumption);
-                    assertions.add(fieldAssertion);
                 }
             }
 
-            enclClassAssumptionsToGenerate.add(Pair.of(field.asType(), fieldAssumption));
-            printlnAligned(String.format("assume%s(this.%s);", enclClassAssumptionCounter++, field.getSimpleName()));
+            if (nonNull) {
+                assumptions.add(fieldAssumption);
+                assertions.add(fieldAssertion);
+                enclClassAssumptionsToGenerate.add(Pair.of(field.asType(), fieldAssumption));
+                printlnAligned(String.format("assume%s(this.%s);", enclClassAssumptionCounter++, field.getSimpleName()));
+            } else {
+                assertions.add(fieldAssertion);
+            }
         }
 
         assertions.stream().map(VerifastClause::toString).forEach(this::printlnAligned);
@@ -1050,16 +1098,28 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
         TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
 
-        if (!underlyingType.getKind().isPrimitive()) {
-            assertion.add(getOwnFieldsPredicateUse(
+        // For variables that are not syntactically typed NonNull, we do not generate any assumptions
+        boolean nonNull = nullnessFactory.getAnnotatedTypeLhs(tree.lhs).hasEffectiveAnnotation(nullnessFactory.getNonNull())
+                && !nullnessResult.isWellTyped(tree);
+
+        if (underlyingType.getKind().isPrimitive()) {
+            assertion.addVar(subject, null);
+            assumption.getRequiresClause().addVar("arg", null);
+            assumption.getEnsuresClause().addVar("arg", null);
+        } else {
+            assertion.addVar(subject, subject + " != null");
+            assumption.getRequiresClause().addVar("arg", null);
+            assumption.getEnsuresClause().addVar("arg", null);
+
+            assertion.addVarPred(subject, getOwnFieldsPredicateUse(
                     packingType,
-                    underlyingType, "arg",
+                    underlyingType, subject,
                     f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
             ));
 
-            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.getRequiresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.getEnsuresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.getEnsuresClause().addVarPred("arg", getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -1075,11 +1135,20 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             boolean wt = wellTypedness.isWellTyped(tree);
 
             PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(type);
-            if (wt) {
-                assumption.addEnsuresPred(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            if (pa.getAnnotationType().isNonNull()) {
+                if (!type.getKind().isPrimitive()) {
+                    assertion.setGuard(subject, null);
+                    assertion.addBefore(new PredicateUse(
+                            pa,
+                            subject,
+                            f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                    assumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                }
+            } else if (nonNull && wt) {
+                assumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
-            } else {
-                assertion.add(new PredicateUse(
+            } else if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
+                assertion.addVarPred(subject, new PredicateUse(
                         pa,
                         subject,
                         f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
@@ -1087,12 +1156,18 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
         }
 
-        if (underlyingType.getKind().isPrimitive() && assertion.getPreds().size() == 0) {
+        int predNum = assertion.getPredNum();
+        if (underlyingType.getKind().isPrimitive() && predNum == 0) {
             assertion = null;
-        } else if (!underlyingType.getKind().isPrimitive() && assertion.getPreds().size() == 1) {
+        } else if (!underlyingType.getKind().isPrimitive() && predNum == 1) {
             assertion = null;
         }
 
+        if (!nonNull) {
+            assumption = null;
+        }
+
+        enclClassAssumptionsToGenerate.add(Pair.of(underlyingType, assumption));
         return Pair.of(assertion, assumption);
     }
 
@@ -1104,6 +1179,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
         TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
         String frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
+
         if (frame.equals("Object")) {
             packingTypeMirror = propertyFactory.getAnnotatedType(tree.getInitializer());
             packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
@@ -1111,16 +1187,30 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
         }
 
+        // For variables that are not syntactically typed NonNull, we do not generate any assumptions
+        boolean nonNull = nullnessFactory.getAnnotatedTypeLhs(tree).hasEffectiveAnnotation(nullnessFactory.getNonNull())
+                && !nullnessResult.isWellTyped(tree);
+
+        if (underlyingType.getKind().isPrimitive()) {
+            assertion.addVar(subject, null);
+            assumption.getRequiresClause().addVar("arg", null);
+            assumption.getEnsuresClause().addVar("arg", null);
+        } else {
+            assertion.addVar(subject, subject + " != null");
+            assumption.getRequiresClause().addVar("arg", null);
+            assumption.getEnsuresClause().addVar("arg", null);
+        }
+
         if (!underlyingType.getKind().isPrimitive() && !frame.equals("Object")) {
-            assertion.add(getOwnFieldsPredicateUse(
+            assertion.addVarPred(subject, getOwnFieldsPredicateUse(
                     packingType,
-                    underlyingType, "arg",
+                    underlyingType, subject,
                     f -> "?" + subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter
             ));
 
-            assumption.addRequiresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
-            assumption.addEnsuresPred(getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.getRequiresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "?arg_" + f.getSimpleName() + "_a"));
+            assumption.getEnsuresClause().addVarPred("arg", getOwnFieldsPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            assumption.getEnsuresClause().addVarPred("arg", getFieldTypesPredicateUse(packingType, underlyingType, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
         }
 
         for (LatticeVisitor.Result wellTypedness : results) {
@@ -1136,11 +1226,20 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             boolean wt = wellTypedness.isWellTyped(tree);
 
             PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(factory.getAnnotatedTypeLhs(tree));
-            if (wt) {
-                assumption.addEnsuresPred(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+            if (pa.getAnnotationType().isNonNull()) {
+                if (!type.getKind().isPrimitive()) {
+                    assertion.setGuard(subject, null);
+                    assertion.addBefore(new PredicateUse(
+                            pa,
+                            subject,
+                            f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
+                    assumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
+                }
+            } else if (nonNull && wt) {
+                assumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
-            } else {
-                assertion.add(new PredicateUse(
+            } else if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
+                assertion.addVarPred(subject, new PredicateUse(
                         pa,
                         subject,
                         f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
@@ -1148,10 +1247,15 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
         }
 
-        if (underlyingType.getKind().isPrimitive() && assertion.getPreds().size() == 0) {
+        int predNum = assertion.getPredNum();
+        if (underlyingType.getKind().isPrimitive() && predNum == 0) {
             assertion = null;
-        } else if (!underlyingType.getKind().isPrimitive() && assertion.getPreds().size() == 1) {
+        } else if (!underlyingType.getKind().isPrimitive() && predNum == 1) {
             assertion = null;
+        }
+
+        if (!nonNull) {
+            assumption = null;
         }
 
         enclClassAssumptionsToGenerate.add(Pair.of(underlyingType, assumption));
@@ -1379,72 +1483,64 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
         private VerifastClause requiresClause;
         private VerifastClause ensuresClause;
-        private List<String> additionalRequiresClausesBefore;
-        private List<String> additionalEnsuresClausesBefore;
-        private List<String> additionalRequiresClausesAfter;
-        private List<String> additionalEnsuresClausesAfter;
 
         public VerifastContract(boolean requiresPermission, boolean ensuresPermission) {
             this.requiresClause = new VerifastClause("requires", requiresPermission);
             this.ensuresClause = new VerifastClause("ensures", ensuresPermission);
-            this.additionalRequiresClausesBefore = new ArrayList<>();
-            this.additionalEnsuresClausesBefore = new ArrayList<>();
-            this.additionalRequiresClausesAfter = new ArrayList<>();
-            this.additionalEnsuresClausesAfter = new ArrayList<>();
         }
 
-        public void addRequiresPred(PredicateUse req) {
-            requiresClause.add(req);
+        public VerifastClause getRequiresClause() {
+            return requiresClause;
         }
 
-        public void addEnsuresPred(PredicateUse ens) {
-            ensuresClause.add(ens);
-        }
-
-        public void addRequiresPredBefore(String req) {
-            additionalRequiresClausesBefore.add(req);
-        }
-
-        public void addEnsuresPredBefore(String ens) {
-            additionalEnsuresClausesBefore.add(ens);
-        }
-
-        public void addRequiresPredAfter(String req) {
-            additionalRequiresClausesAfter.add(req);
-        }
-
-        public void addEnsuresPredAfter(String ens) {
-            additionalEnsuresClausesAfter.add(ens);
+        public VerifastClause getEnsuresClause() {
+            return ensuresClause;
         }
 
         @Override
         public String toString() {
-            StringJoiner reqBefore = new StringJoiner(" &*& ");
-            StringJoiner ensBefore = new StringJoiner(" &*& ");
-            additionalRequiresClausesBefore.forEach(reqBefore::add);
-            additionalEnsuresClausesBefore.forEach(ensBefore::add);
-            StringJoiner reqAfter = new StringJoiner(" &*& ");
-            StringJoiner ensAfter = new StringJoiner(" &*& ");
-            additionalRequiresClausesAfter.forEach(reqAfter::add);
-            additionalEnsuresClausesAfter.forEach(ensAfter::add);
-
             String reqStr = requiresClause.toString(false);
-            if (reqAfter.length() != 0) {
-                reqStr = reqStr + " &*& " + reqAfter;
-            }
             String ensStr = ensuresClause.toString(false);
-            if (ensAfter.length() != 0) {
-                ensStr = ensStr + " &*& " + ensAfter;
-            }
-
-            if (reqBefore.length() != 0) {
-                reqStr = reqBefore + " &*& " + reqStr;
-            }
-            if (ensBefore.length() != 0) {
-                ensStr = ensBefore + " &*& " + ensStr;
-            }
-
             return "//@ requires " + reqStr + ";\n//@ ensures " + ensStr + ";";
+        }
+    }
+
+    public static class PredicateUseCollection {
+
+        private boolean permission;
+        private String guard;
+        private List<PredicateUse> preds = new ArrayList<>();
+
+
+        public PredicateUseCollection(boolean permission) {
+            this(permission, null);
+        }
+
+        public PredicateUseCollection(boolean permission, String guard) {
+            this.permission = permission;
+            this.guard = guard;
+        }
+
+        public void add(PredicateUse pred) {
+            this.preds.add(pred);
+        }
+
+        @Override
+        public String toString() {
+            StringJoiner sj = new StringJoiner(" &*& ");
+            if (permission) {
+                preds.stream().map(PredicateUse::toString).forEach(sj::add);
+            } else {
+                preds.stream().forEach(p -> { if (p.name.equals("NonNull")) sj.add(p.toString()); else sj.add("[_](" + p + ")"); });
+            }
+            if (sj.length() == 0) {
+                sj.add("true");
+            }
+            if (guard != null) {
+                return String.format("(%s ? (%s) : true)", guard, sj);
+            } else {
+                return "(" + sj + ")";
+            }
         }
     }
 
@@ -1452,7 +1548,10 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
         private String clauseType;
         private boolean permission;
-        private List<PredicateUse> preds = new ArrayList<>();
+        private Map<String, PredicateUseCollection> varPreds = new TreeMap<>();
+        private List<String> additionalPredsBefore = new ArrayList<>();
+        private List<String> additionalPredsAfter = new ArrayList<>();
+        private int predNum;
 
         public VerifastClause(String clauseType) {
             this(clauseType, true);
@@ -1463,16 +1562,38 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             this.permission = permission;
         }
 
-        public void add(PredicateUse pred) {
-            this.preds.add(pred);
+        public void addVar(String varName, String precondition) {
+            assert !varPreds.containsKey(varName);
+            varPreds.put(varName, new PredicateUseCollection(permission, precondition));
         }
 
-        public void addAll(Collection<PredicateUse> preds) {
-            this.preds.addAll(preds);
+        public void setGuard(String varName, String guard) {
+            assert varPreds.containsKey(varName);
+            varPreds.get(varName).guard = guard;
         }
 
-        public List<PredicateUse> getPreds() {
-            return preds;
+        public void addVarPred(String varName, PredicateUse pred) {
+            assert varPreds.containsKey(varName);
+            varPreds.get(varName).add(pred);
+            ++predNum;
+        }
+
+        public void addBefore(PredicateUse pred) {
+            addBefore(pred.toString());
+        }
+
+        public void addBefore(String pred) {
+            this.additionalPredsBefore.add(pred);
+            ++predNum;
+        }
+
+        public void addAfter(PredicateUse pred) {
+            addAfter(pred.toString());
+        }
+
+        public void addAfter(String pred) {
+            this.additionalPredsAfter.add(pred);
+            ++predNum;
         }
 
         @Override
@@ -1482,19 +1603,23 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
         public String toString(boolean withClauseType) {
             StringJoiner sj = new StringJoiner(" &*& ");
-            if (permission) {
-                preds.stream().map(PredicateUse::toString).forEach(sj::add);
-            } else {
-                preds.stream().forEach(p -> sj.add("[_](" + p + ")"));
-            }
+            additionalPredsBefore.forEach(sj::add);
+            varPreds.values().stream().map(PredicateUseCollection::toString).forEach(sj::add);
+            additionalPredsAfter.forEach(sj::add);
+
             if (sj.length() == 0) {
                 sj.add("true");
             }
+
             if (withClauseType) {
                 return "//@ " + clauseType + " " + sj + ";";
             } else {
                 return sj.toString();
             }
+        }
+
+        public int getPredNum() {
+            return predNum;
         }
     }
 

@@ -12,6 +12,4 @@ package case_study;
 //@ predicate Negative(int s;) = s < 0;
 //@ predicate Positive(int s;) = s > 0;
 //@ predicate Zero(int s;) = s == 0;
-//@ predicate Sorted(Order sHead, Node sTail;) = sTail == null ? true : (sTail.head |-> ?th &*& th.product |-> ?thp &*& thp.price |-> ?price0 &*& sHead.product |-> ?hp &*& hp.price |-> ?price1 &*& price0 >= price1);
-//@ predicate LessThan(Order sHead, Node sTail, Node node;) = node.head |-> ?th &*& th.product |-> ?thp &*& thp.price |-> ?price0 &*& sHead.product |-> ?hp &*& hp.price |-> ?price1 &*& price0 >= price1;
-//@ predicate EqualTo(Object subject, Object obj;) = subject == obj;
+//@ predicate Sorted(Order sHead, Node sTail;) = sTail == null ? true : ([_](sTail.head |-> ?th) &*& [_](th.product |-> ?thp) &*& [_](thp.price |-> ?price0) &*& [_](sHead.product |-> ?hp) &*& [_](hp.price |-> ?price1) &*& price0 >= price1);

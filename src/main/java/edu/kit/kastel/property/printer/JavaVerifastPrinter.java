@@ -1579,7 +1579,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
 
         public void addBefore(PredicateUse pred) {
-            addBefore(pred.toString());
+            if (permission || pred.name.equals("NonNull")) {
+                addBefore(pred.toString());
+            } else {
+                addBefore("[_]" + pred);
+            }
         }
 
         public void addBefore(String pred) {
@@ -1588,7 +1592,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
 
         public void addAfter(PredicateUse pred) {
-            addAfter(pred.toString());
+            if (permission || pred.name.equals("NonNull")) {
+                addAfter(pred.toString());
+            } else {
+                addBefore("[_]" + pred);
+            }
         }
 
         public void addAfter(String pred) {
@@ -1603,9 +1611,16 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
 
         public String toString(boolean withClauseType) {
             StringJoiner sj = new StringJoiner(" &*& ");
-            additionalPredsBefore.forEach(sj::add);
-            varPreds.values().stream().map(PredicateUseCollection::toString).forEach(sj::add);
-            additionalPredsAfter.forEach(sj::add);
+
+            if (permission) {
+                additionalPredsBefore.forEach(sj::add);
+                varPreds.values().stream().map(PredicateUseCollection::toString).forEach(sj::add);
+                additionalPredsAfter.forEach(sj::add);
+            } else {
+                additionalPredsBefore.forEach(sj::add);
+                varPreds.values().stream().map(PredicateUseCollection::toString).forEach(sj::add);
+                additionalPredsAfter.forEach(sj::add);
+            }
 
             if (sj.length() == 0) {
                 sj.add("true");

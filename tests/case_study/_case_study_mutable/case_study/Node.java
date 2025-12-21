@@ -113,6 +113,9 @@ public final class Node {
         Assert.immutableFieldEqual("this.tail.head", "newHead", "this.tail.head.product.price", "newHead.product.price");
     }
 
+    @VerifastSuppressTranslatedContract
+    @VerifastRequiresClause("[_](this.head |-> ?this_head_r)")
+    @VerifastRequiresClause("[_](this.head |-> this_head_r)")
     @VerifastEnsuresClause("this_head_r == result")
     @JMLClause("ensures \\result == this.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
@@ -120,6 +123,9 @@ public final class Node {
         return this.head;
     }
 
+    @VerifastSuppressTranslatedContract
+    @VerifastRequiresClause("[_](this.tail |-> ?this_tail_r)")
+    @VerifastRequiresClause("[_](this.tail |-> this_tail_r)")
     @VerifastEnsuresClause("this_tail_r == result")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
@@ -127,8 +133,10 @@ public final class Node {
         return this.tail;
     }
 
-    @VerifastEnsuresClause("this_head_r == this_head_e &*& this_tail_r == this_tail_e")
-    @VerifastEnsuresClause("this_tail_e == result")
+    @VerifastSuppressTranslatedContract
+    @VerifastRequiresClause("[_](this.tail |-> ?this_tail_r)")
+    @VerifastRequiresClause("[_](this.tail |-> this_tail_r)")
+    @VerifastEnsuresClause("this_tail_r == result")
     @JMLClause("ensures \\result == this.tail;")
     @JMLClause("ensures \\result != null ==> \\invariant_for(\\result);")
     @JMLClause("assignable this.packed;")

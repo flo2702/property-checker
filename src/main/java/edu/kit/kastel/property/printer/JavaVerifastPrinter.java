@@ -441,10 +441,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         }
     }
 
-    protected VerifastContract contractForMethod(JCTree.JCMethodDecl tree, boolean trampoline) {
+    protected void addTypesToContract(VerifastContract verifastContract, JCTree.JCMethodDecl tree, boolean trampoline) {
         ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
-        VerifastContract verifastContract = new VerifastContract(!trampoline, trampoline);
-
         List<AnnotationMirror> inputPackingTypes = propertyFactory.getInputPackingTypes(tree);
         List<AnnotationMirror> outputPackingTypes = propertyFactory.getOutputPackingTypes(tree);
 
@@ -465,17 +463,20 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 // Open OwnFields and FieldTypes predicates of receiver directly to avoid errors when verifying the
                 // method body.
                 // But leave them closed in trampoline methods to avoid missing heap chunks in callers.
-                /*verifastContract.getRequiresClause().addBefore(getOwnFieldsPredicateUse(
-                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                verifastContract.getRequiresClause().addBefore(getFieldTypesPredicateUse(
-                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));*/
-                verifastContract.getRequiresClause().addBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                verifastContract.getRequiresClause().addBefore(fieldTypesPredBody(
-                        enclClass,
-                        f -> "this_" + f.getSimpleName() + "_r",
-                        (f, ff) -> "this_" + f.getSimpleName() + "_" + ff.getSimpleName() + "_r",
-                        // TODO the below only works for simple field accesses, not for more complex type arguments
-                        a -> JavaExpressionUtil.isLiteral(a) ? a : ("this_" + a + "_r")));
+                if (trampoline) {
+                    verifastContract.getRequiresClause().addBefore(getOwnFieldsPredicateUse(
+                            receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                    verifastContract.getRequiresClause().addBefore(getFieldTypesPredicateUse(
+                            receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));
+                } else {
+                    verifastContract.getRequiresClause().addBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                    verifastContract.getRequiresClause().addBefore(fieldTypesPredBody(
+                            enclClass,
+                            f -> "this_" + f.getSimpleName() + "_r",
+                            (f, ff) -> "this_" + f.getSimpleName() + "_" + ff.getSimpleName() + "_r",
+                            // TODO the below only works for simple field accesses, not for more complex type arguments
+                            a -> JavaExpressionUtil.isLiteral(a) ? a : ("this_" + a + "_r")));
+                }
             }
         }
 
@@ -532,6 +533,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
                     if (!pat.isTrivial() && !pat.isInv()) {
+                        verifastContract.getRequiresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
                     }
                 }
 
@@ -574,13 +576,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     if (trampoline) {
                         verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
                     } else {
-                        if (propertyFactory.isSideEffectFree(element)) {
-                            // Side-effect free methods reuse the precondition variables instead of
-                            // defining new ones.
-                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
-                        } else {
-                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
-                        }
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                     }
                 }
                 if (!trampoline) {
@@ -732,6 +728,15 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 }
             }
         }
+    }
+
+    protected VerifastContract contractForMethod(JCTree.JCMethodDecl tree, boolean trampoline) {
+        ExecutableElement element = propertyFactory.getAnnotatedType(tree).getElement();
+        VerifastContract verifastContract = new VerifastContract(!trampoline, trampoline);
+
+        if (propertyFactory.getDeclAnnotation(element, VerifastSuppressTranslatedContract.class) == null) {
+            addTypesToContract(verifastContract, tree, trampoline);
+        };
 
         Function<String, String> clauseTransformer = trampoline && isConstructor(tree) ? clause -> clause.replace("this", "result") : Function.identity();
         getVerifastRequiresClauseValues(element).stream().map(clauseTransformer).forEach(verifastContract.getRequiresClause()::addAfter);

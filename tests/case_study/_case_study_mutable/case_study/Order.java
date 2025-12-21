@@ -1,6 +1,6 @@
 package case_study;
 
-import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.checker.qual.*;
 import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
@@ -28,7 +28,9 @@ public final class Order {
         this.product = product;
     }
 
-    @VerifastEnsuresClause("[_](this_product_r.price |-> this_product_price_r)")
+    @VerifastSuppressTranslatedContract
+    @VerifastRequiresClause("this.product |-> ?this_product_r &*& this_product_r.price |-> ?this_product_price_r")
+    @VerifastEnsuresClause("this.product |-> this_product_r &*& this_product_r.price |-> this_product_price_r")
     @VerifastEnsuresClause("this_product_price_r == result")
     @JMLClause("ensures \\result == this.product.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure

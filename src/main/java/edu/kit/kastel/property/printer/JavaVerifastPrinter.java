@@ -673,6 +673,26 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     verifastContract.getRequiresClause().addVarPred(paramName, getFieldTypesPredicateUse(
                             inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
                     ));
+
+                    if (propertyFactory.isSideEffectFree(element)) {
+                        // Side-effect free methods reuse the precondition variables instead of
+                        // defining new ones.
+                        if (trampoline) {
+                            verifastContract.getEnsuresClause().addVarPred(paramName, getOwnFieldsPredicateUse(
+                                    inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
+                            ));
+                            verifastContract.getEnsuresClause().addVarPred(paramName, getFieldTypesPredicateUse(
+                                    inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_r"
+                            ));
+                        }
+                    } else {
+                        verifastContract.getEnsuresClause().addVarPred(paramName, getOwnFieldsPredicateUse(
+                                inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_e"
+                        ));
+                        verifastContract.getEnsuresClause().addVarPred(paramName, getFieldTypesPredicateUse(
+                                inputPackingTypes.get(i + 1), el, f -> paramName + "_" + f.getSimpleName() + "_e"
+                        ));
+                    }
                 }
             }
 

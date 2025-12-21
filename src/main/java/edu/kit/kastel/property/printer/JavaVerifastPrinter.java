@@ -462,26 +462,20 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     receiverType = propertyFactory.getAnnotatedType(tree).getReceiverType();
                 }
 
-                // Side-effect free methods use no heap chunks except for the result.
-                if (!propertyFactory.isSideEffectFree(element)) {
-                    // Open OwnFields and FieldTypes predicates of receiver directly to avoid errors when verifying the
-                    // method body.
-                    // But leave them closed in trampoline methods to avoid missing heap chunks in callers.
-                    if (trampoline) {
-                        verifastContract.getRequiresClause().addBefore(getOwnFieldsPredicateUse(
-                                receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                        verifastContract.getRequiresClause().addBefore(getFieldTypesPredicateUse(
-                                receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));
-                    } else {
-                        verifastContract.getRequiresClause().addBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
-                        verifastContract.getRequiresClause().addBefore(fieldTypesPredBody(
-                                enclClass,
-                                f -> "this_" + f.getSimpleName() + "_r",
-                                (f, ff) -> "this_" + f.getSimpleName() + "_" + ff.getSimpleName() + "_r",
-                                // TODO the below only works for simple field accesses, not for more complex type arguments
-                                a -> JavaExpressionUtil.isLiteral(a) ? a : ("this_" + a + "_r")));
-                    }
-                }
+                // Open OwnFields and FieldTypes predicates of receiver directly to avoid errors when verifying the
+                // method body.
+                // But leave them closed in trampoline methods to avoid missing heap chunks in callers.
+                /*verifastContract.getRequiresClause().addBefore(getOwnFieldsPredicateUse(
+                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                verifastContract.getRequiresClause().addBefore(getFieldTypesPredicateUse(
+                        receiverInputType, receiverType.getUnderlyingType(), "this", f -> "this_" + f.getSimpleName() + "_r"));*/
+                verifastContract.getRequiresClause().addBefore(ownFieldsPredBody(enclClass, "this", f -> "?this_" + f.getSimpleName() + "_r"));
+                verifastContract.getRequiresClause().addBefore(fieldTypesPredBody(
+                        enclClass,
+                        f -> "this_" + f.getSimpleName() + "_r",
+                        (f, ff) -> "this_" + f.getSimpleName() + "_" + ff.getSimpleName() + "_r",
+                        // TODO the below only works for simple field accesses, not for more complex type arguments
+                        a -> JavaExpressionUtil.isLiteral(a) ? a : ("this_" + a + "_r")));
             }
         }
 
@@ -507,8 +501,14 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             }
             if (receiverOutputType != null) {
                 VariableElement el = TreeUtils.elementFromDeclaration(tree.getReceiverParameter());
-                if (!propertyFactory.isSideEffectFree(element)) {
-                    // Side-effect free methods use no heap chunks except for the result.
+                if (propertyFactory.isSideEffectFree(element)) {
+                    // Side-effect free methods reuse the precondition variables instead of
+                    // defining new ones.
+                    verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
+                            receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_r"));
+                    verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
+                            receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_r"));
+                } else {
                     verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
                             receiverOutputType, el, f -> "?this_" + f.getSimpleName() + "_e"));
                     verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
@@ -532,10 +532,6 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
                     if (!pat.isTrivial() && !pat.isInv()) {
-                        if (!propertyFactory.isSideEffectFree(element)) {
-                            // Side-effect free methods use no heap chunks except for the result.
-                            verifastContract.getRequiresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
-                        }
                     }
                 }
 
@@ -544,8 +540,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
                     if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
-                        if (!propertyFactory.isSideEffectFree(element)) {
-                            // Side-effect free methods use no heap chunks except for the result.
+                        if (propertyFactory.isSideEffectFree(element)) {
+                            // Side-effect free methods reuse the precondition variables instead of
+                            // defining new ones.
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
+                        } else {
                             verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                         }
                     }
@@ -575,7 +574,13 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     if (trampoline) {
                         verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
                     } else {
-                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
+                        if (propertyFactory.isSideEffectFree(element)) {
+                            // Side-effect free methods reuse the precondition variables instead of
+                            // defining new ones.
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_r"));
+                        } else {
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
+                        }
                     }
                 }
                 if (!trampoline) {
@@ -700,10 +705,22 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 if (outputPat.isNonNull()) {
                     if (!paramType.getKind().isPrimitive()) {
                         verifastContract.getEnsuresClause().setGuard(paramName, null);
-                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                        if (propertyFactory.isSideEffectFree(element)) {
+                            // Side-effect free methods reuse the precondition variables instead of
+                            // defining new ones.
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                        } else {
+                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
+                        }
                     }
                 } else if ((!outputWt || trampoline) && !outputPat.isTrivial() && !outputPat.isInv()) {
-                    verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                    if (propertyFactory.isSideEffectFree(element)) {
+                        // Side-effect free methods reuse the precondition variables instead of
+                        // defining new ones.
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                    } else {
+                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
+                    }
                 }
 
                 if (!trampoline) {
@@ -1534,9 +1551,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 preds.stream().forEach(p -> { if (p.name.equals("NonNull")) sj.add(p.toString()); else sj.add("[_](" + p + ")"); });
             }
             if (sj.length() == 0) {
-                sj.add("true");
-            }
-            if (guard != null) {
+                return "true";
+            } else if (guard != null) {
                 return String.format("(%s ? (%s) : true)", guard, sj);
             } else {
                 return "(" + sj + ")";

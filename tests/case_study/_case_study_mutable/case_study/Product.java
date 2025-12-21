@@ -28,8 +28,7 @@ public final class Product {
         this.ageRestriction = ageRestriction;
     }
 
-    @VerifastRequiresClause("this.price |-> ?this_price_r")
-    @VerifastEnsuresClause("this_price_r == result &*& [_](this.price |-> this_price_r)")
+    @VerifastEnsuresClause("this_price_r == result")
     @JMLClause("ensures \\result == this.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure
     public int getPrice(@MaybeAliased Product this) {

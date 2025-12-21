@@ -76,7 +76,6 @@ public final class SortedList {
         }
     }
 
-    @VerifastRequiresClause("this.first |-> ?this_first_r &*& this_first_r != null &*& this_first_r.head |-> ?this_first_head_r")
     @VerifastEnsuresClause("[_](this.first |-> this_first_r) &*& this_first_r != null &*& [_](this_first_r.head |-> this_first_head_r) &*& this_first_head_r == result")
     @JMLClause("ensures \\result == this.first.head;")
     @JMLClause("assignable \\strictly_nothing;") @Pure

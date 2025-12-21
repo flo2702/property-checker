@@ -29,8 +29,8 @@ public final class Order {
     }
 
     @VerifastSuppressTranslatedContract
-    @VerifastRequiresClause("this.product |-> ?this_product_r &*& this_product_r.price |-> ?this_product_price_r")
-    @VerifastEnsuresClause("this.product |-> this_product_r &*& this_product_r.price |-> this_product_price_r")
+    @VerifastRequiresClause("[?frac](this.product |-> ?this_product_r) &*& [frac](this_product_r.price |-> ?this_product_price_r)")
+    @VerifastEnsuresClause("[frac](this.product |-> this_product_r) &*& [frac](this_product_r.price |-> this_product_price_r)")
     @VerifastEnsuresClause("this_product_price_r == result")
     @JMLClause("ensures \\result == this.product.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure

@@ -57,7 +57,7 @@ public final class SortedList {
         // :: error: nullness.dereference.of.nullable
         Order result = this.first.getHead();
         this.first = this.first.stealTail();
-        Assert._verifast_close("NonEmpty(this_first_r)");
+        Assert._verifast_close("SortedList_FieldTypes(this.first)");
         Ghost.set("footprint", "\\set_union(\\singleton(this.first), \\singleton(this.footprint), this.first == null ? \\empty : this.first.footprint)");
         return result;
     }

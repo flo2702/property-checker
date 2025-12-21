@@ -29,8 +29,8 @@ public final class Product {
     }
 
     @VerifastSuppressTranslatedContract
-    @VerifastRequiresClause("this.price |-> ?this_price_r")
-    @VerifastEnsuresClause("this.price |-> this_price_r")
+    @VerifastRequiresClause("[?frac](this.price |-> ?this_price_r)")
+    @VerifastEnsuresClause("[frac](this.price |-> this_price_r)")
     @VerifastEnsuresClause("this_price_r == result")
     @JMLClause("ensures \\result == this.price;")
     @JMLClause("assignable \\strictly_nothing;") @Pure

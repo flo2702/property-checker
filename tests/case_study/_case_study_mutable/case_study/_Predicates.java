@@ -12,4 +12,7 @@ package case_study;
 //@ predicate Negative(int s;) = s < 0;
 //@ predicate Positive(int s;) = s > 0;
 //@ predicate Zero(int s;) = s == 0;
-//@ predicate Sorted(Order sHead, Node sTail;) = sTail == null ? true : ([_](sTail.head |-> ?th) &*& [_](th.product |-> ?thp) &*& [_](thp.price |-> ?price0) &*& [_](sHead.product |-> ?hp) &*& [_](hp.price |-> ?price1) &*& price0 >= price1);
+
+//@ predicate Sorted(Order sHead, Node sTail;) = sTail == null ? true : ([_](sTail.head |-> ?th) &*& [_](sTail.tail |-> ?tt) &*& SortedOrders(sHead,th) &*& Sorted(th, tt));
+//@ predicate SortedOrders(Order order0, Order order1;) = OrderPred(order0, ?price0) &*& OrderPred(order1, ?price1) &*& price0 <= price1;
+//@ predicate OrderPred(Order order; int price) = [_](order.product |-> ?p) &*& [_](p.price |-> price);

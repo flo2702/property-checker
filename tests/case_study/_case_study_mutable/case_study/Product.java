@@ -26,6 +26,12 @@ public final class Product {
         this.title = title;
         this.price = price;
         this.ageRestriction = ageRestriction;
+
+        // Why is this necessary?
+        Assert._verifast_open_translationOnly("Interval(price, 0, 2147483647)");
+        Assert._verifast_close_translationOnly("Interval(price, 0, 2147483647)");
+        Assert._verifast_open_translationOnly("Interval(ageRestriction, 0, 18)");
+        Assert._verifast_close_translationOnly("Interval(ageRestriction, 0, 18)");
     }
 
     @VerifastSuppressTranslatedContract

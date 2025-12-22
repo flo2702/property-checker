@@ -36,6 +36,10 @@ public final class Node {
         this.head = head;
         this.tail = tail;
         Ghost.set("footprint", "\\set_union(\\singleton(this.head), \\singleton(this.tail), \\singleton(this.footprint), this.tail.footprint)");
+
+        // Why is this necessary?
+        Assert._verifast_close_translationOnly("[0.5]Node_FieldTypes(this.head, this.tail)");
+        Assert._verifast_close_translationOnly("[0.5]Sorted(tail_head_r, tail_tail_r)");
     }
 
     @VerifastEnsuresClause("this_tail_e == null &*& this_head_e == head")

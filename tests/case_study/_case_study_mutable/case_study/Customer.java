@@ -1,6 +1,6 @@
 package case_study;
 
-import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.*;
 import edu.kit.kastel.property.checker.qual.*;
 import org.checkerframework.checker.nullness.qual.*;
 import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
@@ -21,5 +21,9 @@ public final class Customer {
     public @AgedOver(age="age") Customer(String name, @Interval(min="14", max="150") int age) {
         this.name = name;
         this.age = age;
+
+        // Why is this necessary?
+        Assert._verifast_open_translationOnly("Interval(age, 14, 150)");
+        Assert._verifast_close_translationOnly("Interval(age, 14, 150)");
     }
 }

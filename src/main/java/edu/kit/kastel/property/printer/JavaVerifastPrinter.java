@@ -541,7 +541,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotation pa = lattice.getPropertyAnnotation(receiverOutputType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    if ((!outputWt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                    if ((!outputWt || trampoline || TRANSLATION_RAW) && !pat.isTrivial() && !pat.isInv() && !pat.isNonNull()) {
                         if (propertyFactory.isSideEffectFree(element)) {
                             // Side-effect free methods reuse the precondition variables instead of
                             // defining new ones.
@@ -552,7 +552,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     }
                 }
                 if (!trampoline) {
-                    if (!outputWt) {
+                    if (!outputWt || TRANSLATION_RAW) {
                         ++methodCallPostconditions;
                     } else {
                         ++freeMethodCallPostconditions;
@@ -572,15 +572,15 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(receiverType);
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
-                if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                if ((!wt || trampoline || TRANSLATION_RAW) && !pat.isTrivial() && !pat.isInv()) {
                     if (trampoline) {
                         verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "result", f -> "result_" + f.getSimpleName() + "_e"));
-                    } else {
+                    } else if (!pat.isNonNull()) {
                         verifastContract.getEnsuresClause().addBefore(new PredicateUse(pa, "this", f -> "this_" + f.getSimpleName() + "_e"));
                     }
                 }
                 if (!trampoline) {
-                    if (!wt) {
+                    if (!wt || TRANSLATION_RAW) {
                         if (!pat.isTrivial() && !pat.isInv()) {
                             ++methodCallPostconditions;
                         }
@@ -623,7 +623,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                     PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(returnType);
                     PropertyAnnotationType pat = pa.getAnnotationType();
 
-                    if ((!wt || trampoline) && !pat.isTrivial() && !pat.isInv()) {
+                    if ((!wt || trampoline || TRANSLATION_RAW) && !pat.isTrivial() && !pat.isInv()) {
                         if (pat.isNonNull()) {
                             if (!returnType.getKind().isPrimitive()) {
                                 verifastContract.getEnsuresClause().setGuard("result", null);
@@ -634,7 +634,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                         }
                     }
                     if (!trampoline) {
-                        if (!wt) {
+                        if (!wt || TRANSLATION_RAW) {
                             if (!pat.isTrivial() && !pat.isInv()) {
                                 ++methodCallPostconditions;
                             }
@@ -729,7 +729,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                             verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
                         }
                     }
-                } else if ((!outputWt || trampoline) && !outputPat.isTrivial() && !outputPat.isInv()) {
+                } else if ((!outputWt || trampoline || TRANSLATION_RAW) && !outputPat.isTrivial() && !outputPat.isInv()) {
                     if (propertyFactory.isSideEffectFree(element)) {
                         // Side-effect free methods reuse the precondition variables instead of
                         // defining new ones.
@@ -740,7 +740,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 }
 
                 if (!trampoline) {
-                    if (!outputWt) {
+                    if (!outputWt || TRANSLATION_RAW) {
                         ++methodCallPostconditions;
                     } else {
                         ++freeMethodCallPostconditions;
@@ -924,7 +924,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             VerifastContract fieldAssumption = new VerifastContract(false, false);
             String name = field.getSimpleName().toString();
 
-            // For fields that are not syntactically typed NonNull, we do not generate any assumptions
+            // For variables that are not syntactically typed NonNull, we do not generate any assumptions,
+            // since the nullness check makes it awkward to reference variables defined in the assumption's precondition
             boolean nonNull = nullnessFactory.getAnnotatedType(field).hasEffectiveAnnotation(nullnessFactory.getNonNull())
                     && !nullnessResult.getUninitializedFields(tree).contains(field);
 
@@ -966,7 +967,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                                     f -> name + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
                             fieldAssumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                         }
-                    } else if (nonNull && wt) {
+                    } else if (nonNull && wt && !TRANSLATION_RAW) {
                         fieldAssumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, name, f -> "arg_" + f.getSimpleName() + "_a"));
                     } else {
                         fieldAssertion.addVarPred(name, new PredicateUse(
@@ -977,7 +978,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 }
             }
 
-            if (nonNull) {
+            if (nonNull && !TRANSLATION_RAW) {
                 assumptions.add(fieldAssumption);
                 assertions.add(fieldAssertion);
                 enclClassAssumptionsToGenerate.add(Pair.of(field.asType(), fieldAssumption));
@@ -1031,6 +1032,27 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 print(String.format("//@ open %s", pred.getValue()));
                 return;
             } else if (tree.meth.toString().equals("Assert._verifast_close")) {
+                JCTree.JCLiteral pred = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ close %s", pred.getValue()));
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_assert_translationOnly")) {
+                if (!TRANSLATION_RAW) {
+                    return;
+                }
+                JCTree.JCLiteral assertion = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ assert %s", assertion.getValue()));
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_open_translationOnly")) {
+                if (!TRANSLATION_RAW) {
+                    return;
+                }
+                JCTree.JCLiteral pred = (JCTree.JCLiteral) tree.args.get(0);
+                print(String.format("//@ open %s", pred.getValue()));
+                return;
+            } else if (tree.meth.toString().equals("Assert._verifast_close_translationOnly")) {
+                if (!TRANSLATION_RAW) {
+                    return;
+                }
                 JCTree.JCLiteral pred = (JCTree.JCLiteral) tree.args.get(0);
                 print(String.format("//@ close %s", pred.getValue()));
                 return;
@@ -1140,7 +1162,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         AnnotationMirror packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
         TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
 
-        // For variables that are not syntactically typed NonNull, we do not generate any assumptions
+        // For variables that are not syntactically typed NonNull, we do not generate any assumptions,
+        // since the nullness check makes it awkward to reference variables defined in the assumption's precondition
         boolean nonNull = nullnessFactory.getAnnotatedTypeLhs(tree.lhs).hasEffectiveAnnotation(nullnessFactory.getNonNull())
                 && !nullnessResult.isWellTyped(tree);
 
@@ -1186,7 +1209,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                             f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
                     assumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 }
-            } else if (nonNull && wt) {
+            } else if (nonNull && wt && !TRANSLATION_RAW) {
                 assumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
             } else if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
@@ -1205,7 +1228,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             assertion = null;
         }
 
-        if (!nonNull) {
+        if (!nonNull || TRANSLATION_RAW) {
             assumption = null;
         }
 
@@ -1229,7 +1252,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
         }
 
-        // For variables that are not syntactically typed NonNull, we do not generate any assumptions
+        // For variables that are not syntactically typed NonNull, we do not generate any assumptions,
+        // since the nullness check makes it awkward to reference variables defined in the assumption's precondition
         boolean nonNull = nullnessFactory.getAnnotatedTypeLhs(tree).hasEffectiveAnnotation(nullnessFactory.getNonNull())
                 && !nullnessResult.isWellTyped(tree);
 
@@ -1277,7 +1301,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                             f -> subject + "_" + f.getSimpleName() + "_a" + enclClassAssertionSequenceCounter));
                     assumption.getEnsuresClause().addBefore(new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 }
-            } else if (nonNull && wt) {
+            } else if (nonNull && wt && !TRANSLATION_RAW) {
                 assumption.getEnsuresClause().addVarPred("arg", new PredicateUse(pa, "arg", f -> "arg_" + f.getSimpleName() + "_a"));
                 ++assumptions;
             } else if (!pa.getAnnotationType().isTrivial() && !pa.getAnnotationType().isInv()) {
@@ -1296,7 +1320,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             assertion = null;
         }
 
-        if (!nonNull) {
+        if (!nonNull || TRANSLATION_RAW) {
             assumption = null;
         }
 

@@ -26,6 +26,12 @@ public final class Order {
         this.customer = customer;
         // :: error: allowedfor.assignment.type.incompatible
         this.product = product;
+
+        // Why is this necessary?
+        Assert._verifast_open_translationOnly("AgedOver(customer_age_r, witness)");
+        Assert._verifast_close_translationOnly("AgedOver(customer_age_r, witness)");
+        Assert._verifast_open_translationOnly("AllowedFor(product_ageRestriction_r, witness)");
+        Assert._verifast_close_translationOnly("AllowedFor(product_ageRestriction_r, witness)");
     }
 
     @VerifastSuppressTranslatedContract

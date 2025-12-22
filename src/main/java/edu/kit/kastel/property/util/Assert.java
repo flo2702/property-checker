@@ -16,4 +16,8 @@ public final class Assert {
     public static void _verifast_assert(String a) { }
     public static void _verifast_open(String a) { }
     public static void _verifast_close(String a) { }
+
+    public static void _verifast_assert_translationOnly(String a) { }
+    public static void _verifast_open_translationOnly(String a) { }
+    public static void _verifast_close_translationOnly(String a) { }
 }

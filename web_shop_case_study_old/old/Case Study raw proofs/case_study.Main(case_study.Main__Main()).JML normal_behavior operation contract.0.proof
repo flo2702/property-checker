@@ -1,0 +1,195 @@
+\profile "Java Profile";
+
+\settings // Proof-Settings-Config-File
+{ 
+    "Choice" : { 
+        "JavaCard" : "JavaCard:off",
+        "Strings" : "Strings:on",
+        "assertions" : "assertions:on",
+        "bigint" : "bigint:on",
+        "floatRules" : "floatRules:strictfpOnly",
+        "initialisation" : "initialisation:disableStaticInitialisation",
+        "intRules" : "intRules:arithmeticSemanticsIgnoringOF",
+        "integerSimplificationRules" : "integerSimplificationRules:full",
+        "javaLoopTreatment" : "javaLoopTreatment:efficient",
+        "mergeGenerateIsWeakeningGoal" : "mergeGenerateIsWeakeningGoal:off",
+        "methodExpansion" : "methodExpansion:modularOnly",
+        "modelFields" : "modelFields:treatAsAxiom",
+        "moreSeqRules" : "moreSeqRules:on",
+        "permissions" : "permissions:off",
+        "programRules" : "programRules:Java",
+        "reach" : "reach:on",
+        "runtimeExceptions" : "runtimeExceptions:allow",
+        "sequences" : "sequences:on",
+        "wdChecks" : "wdChecks:off",
+        "wdOperator" : "wdOperator:L"
+     },
+    "Labels" : { 
+        "UseOriginLabels" : false
+     },
+    "NewSMT" : { 
+        
+     },
+    "SMTSettings" : { 
+        "SelectedTaclets" : [ 
+            
+         ],
+        "UseBuiltUniqueness" : false,
+        "explicitTypeHierarchy" : false,
+        "instantiateHierarchyAssumptions" : true,
+        "integersMaximum" : 2147483645,
+        "integersMinimum" : -2147483645,
+        "invariantForall" : false,
+        "maxGenericSorts" : 2,
+        "useConstantsForBigOrSmallIntegers" : true,
+        "useUninterpretedMultiplication" : true
+     },
+    "Strategy" : { 
+        "ActiveStrategy" : "JavaCardDLStrategy",
+        "MaximumNumberOfAutomaticApplications" : 100000,
+        "Timeout" : -1,
+        "options" : { 
+            "AUTO_INDUCTION_OPTIONS_KEY" : "AUTO_INDUCTION_OFF",
+            "BLOCK_OPTIONS_KEY" : "BLOCK_CONTRACT_INTERNAL",
+            "CLASS_AXIOM_OPTIONS_KEY" : "CLASS_AXIOM_FREE",
+            "DEP_OPTIONS_KEY" : "DEP_ON",
+            "INF_FLOW_CHECK_PROPERTY" : "INF_FLOW_CHECK_FALSE",
+            "LOOP_OPTIONS_KEY" : "LOOP_INVARIANT",
+            "METHOD_OPTIONS_KEY" : "METHOD_CONTRACT",
+            "MPS_OPTIONS_KEY" : "MPS_MERGE",
+            "NON_LIN_ARITH_OPTIONS_KEY" : "NON_LIN_ARITH_DEF_OPS",
+            "OSS_OPTIONS_KEY" : "OSS_ON",
+            "QUANTIFIERS_OPTIONS_KEY" : "QUANTIFIERS_NON_SPLITTING_WITH_PROGS",
+            "QUERYAXIOM_OPTIONS_KEY" : "QUERYAXIOM_ON",
+            "QUERY_NEW_OPTIONS_KEY" : "QUERY_OFF",
+            "SPLITTING_OPTIONS_KEY" : "SPLITTING_DELAYED",
+            "STOPMODE_OPTIONS_KEY" : "STOPMODE_DEFAULT",
+            "SYMBOLIC_EXECUTION_ALIAS_CHECK_OPTIONS_KEY" : "SYMBOLIC_EXECUTION_ALIAS_CHECK_NEVER",
+            "SYMBOLIC_EXECUTION_NON_EXECUTION_BRANCH_HIDING_OPTIONS_KEY" : "SYMBOLIC_EXECUTION_NON_EXECUTION_BRANCH_HIDING_OFF",
+            "USER_TACLETS_OPTIONS_KEY1" : "USER_TACLETS_OFF",
+            "USER_TACLETS_OPTIONS_KEY2" : "USER_TACLETS_OFF",
+            "USER_TACLETS_OPTIONS_KEY3" : "USER_TACLETS_OFF",
+            "VBT_PHASE" : "VBT_SYM_EX"
+         }
+     }
+ } 
+
+\javaSource "../../../property-checker-out/case_study";
+
+\proofObligation "#Proof Obligation Settings
+#Sun Mar 17 18:02:33 CET 2024
+contract=case_study.Main[case_study.Main\\:\\:Main()].JML normal_behavior operation contract.0
+name=case_study.Main[case_study.Main\\:\\:Main()].JML normal_behavior operation contract.0
+class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
+";
+
+\proof {
+(keyLog "0" (keyUser "florian" ) (keyVersion "27183cea39cd71d8280021bab8de03c8490dcfd2"))
+
+(autoModeTime "249")
+
+(branch "dummy ID"
+ (builtin "One Step Simplification" (formula "1") (newnames "heapAtPre,o,f"))
+(rule "impRight" (formula "1"))
+(rule "andLeft" (formula "1"))
+(rule "assignment" (formula "3"))
+(rule "variableDeclarationAssign" (formula "3") (term "1"))
+(rule "variableDeclaration" (formula "3") (term "1") (newnames "self_1"))
+(rule "staticMethodCallStaticWithAssignmentViaTypereference" (formula "3") (term "1") (inst "#v0=m"))
+(rule "variableDeclaration" (formula "3") (term "1") (newnames "m"))
+(rule "methodBodyExpand" (formula "3") (term "1") (newnames "heapBefore_<createObject>,savedHeapBefore_<createObject>"))
+ (builtin "One Step Simplification" (formula "3"))
+(rule "variableDeclaration" (formula "3") (term "1") (newnames "__NEW__"))
+(rule "staticMethodCallStaticWithAssignmentViaTypereference" (formula "3") (term "1") (inst "#v0=m_1"))
+(rule "variableDeclaration" (formula "3") (term "1") (newnames "m_1"))
+(rule "allocateInstance" (formula "3"))
+ (builtin "One Step Simplification" (formula "4"))
+ (builtin "One Step Simplification" (formula "1") (ifInst ""  (formula "2")))
+(rule "andLeft" (formula "1"))
+(rule "andLeft" (formula "1"))
+(rule "notLeft" (formula "1"))
+(rule "notLeft" (formula "1"))
+(rule "blockEmpty" (formula "6") (term "1"))
+(rule "assignment" (formula "6") (term "1"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodBodyExpand" (formula "6") (term "1") (newnames "heapBefore_<create>,savedHeapBefore_<create>"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "assignment_write_attribute_this" (formula "6") (term "1"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallWithinClass" (formula "6") (term "1"))
+(rule "methodBodyExpand" (formula "6") (term "1") (newnames "heapBefore_<prepareEnter>,savedHeapBefore_<prepareEnter>"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallSuper" (formula "6") (term "1"))
+(rule "methodBodyExpand" (formula "6") (term "1") (newnames "heapBefore_<prepare>,savedHeapBefore_<prepare>"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallEmpty" (formula "6") (term "1"))
+(rule "methodCallEmpty" (formula "6") (term "1"))
+(rule "blockEmpty" (formula "6") (term "1"))
+(rule "methodCallReturnIgnoreResult" (formula "6") (term "1"))
+(rule "methodCallReturn" (formula "6") (term "1"))
+(rule "assignment" (formula "6") (term "1"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallEmpty" (formula "6") (term "1"))
+(rule "blockEmpty" (formula "6") (term "1"))
+(rule "assignment" (formula "6") (term "1"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "blockEmpty" (formula "6") (term "1"))
+(rule "methodBodyExpand" (formula "6") (term "1") (newnames "heapBefore_<init>,savedHeapBefore_<init>"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallSuper" (formula "6") (term "1"))
+(rule "methodBodyExpand" (formula "6") (term "1") (newnames "heapBefore_<init>_0,savedHeapBefore_<init>_0"))
+ (builtin "One Step Simplification" (formula "6"))
+(rule "methodCallEmpty" (formula "6") (term "1"))
+(rule "blockEmpty" (formula "6") (term "1"))
+ (builtin "Use Operation Contract" (formula "6") (newnames "heapBefore_havocPacked,exc_0,heapAfter_havocPacked,anon_heap_havocPacked") (contract "case_study.Main[java.lang.Object::havocPacked()].JML normal_behavior operation contract.0") (modality "diamond"))
+(branch "Post (havocPacked)"
+    (builtin "One Step Simplification" (formula "5"))
+    (builtin "One Step Simplification" (formula "8"))
+   (rule "andLeft" (formula "5"))
+    (builtin "JML assume" (formula "9"))
+    (builtin "One Step Simplification" (formula "9"))
+   (rule "impRight" (formula "9"))
+   (rule "emptyStatement" (formula "10") (term "1"))
+   (rule "pullOutSelect" (formula "1") (term "0") (inst "selectSK=java_lang_Object_packed_0"))
+   (rule "simplifySelectOfAnonEQ" (formula "1") (ifseqformula "7"))
+    (builtin "One Step Simplification" (formula "1") (ifInst ""  (formula "10")))
+   (rule "dismissNonSelectedField" (formula "1") (term "2,0"))
+   (rule "elementOfSingleton" (formula "1") (term "0,0,0"))
+    (builtin "One Step Simplification" (formula "1"))
+   (rule "applyEqReverse" (formula "2") (term "0") (ifseqformula "1"))
+   (rule "hideAuxiliaryEq" (formula "1"))
+   (rule "methodCallEmpty" (formula "10") (term "1"))
+   (rule "blockEmpty" (formula "10") (term "1"))
+   (rule "assignment_write_attribute" (formula "10") (term "1"))
+   (branch "Normal Execution (self_1 != null)"
+       (builtin "One Step Simplification" (formula "11"))
+       (builtin "One Step Simplification" (formula "10") (ifInst ""  (formula "9")))
+      (rule "false_right" (formula "10"))
+      (rule "tryEmpty" (formula "10") (term "1"))
+      (rule "emptyModality" (formula "10") (term "1"))
+       (builtin "One Step Simplification" (formula "10") (ifInst ""  (formula "9")) (ifInst ""  (formula "9")))
+      (rule "Class_invariant_axiom_for_case_study_Main" (formula "10") (ifseqformula "9"))
+      (rule "closeTrue" (formula "10"))
+   )
+   (branch "Null Reference (self_1 = null)"
+       (builtin "One Step Simplification" (formula "1") (ifInst ""  (formula "10")))
+      (rule "closeFalse" (formula "1"))
+   )
+)
+(branch "Exceptional Post (havocPacked)"
+    (builtin "One Step Simplification" (formula "5"))
+    (builtin "One Step Simplification" (formula "8"))
+   (rule "andLeft" (formula "5"))
+   (rule "andLeft" (formula "6"))
+   (rule "andLeft" (formula "6"))
+   (rule "notLeft" (formula "6"))
+   (rule "close" (formula "8") (ifseqformula "7"))
+)
+(branch "Pre (havocPacked)"
+    (builtin "One Step Simplification" (formula "6"))
+   (rule "wellFormedStorePrimitive" (formula "6"))
+   (rule "wellFormedCreate" (formula "6"))
+   (rule "close" (formula "6") (ifseqformula "2"))
+)
+)
+}

@@ -1,0 +1,259 @@
+\profile "Java Profile";
+
+\settings // Proof-Settings-Config-File
+{ 
+    "Choice" : { 
+        "JavaCard" : "JavaCard:off",
+        "Strings" : "Strings:on",
+        "assertions" : "assertions:on",
+        "bigint" : "bigint:on",
+        "floatRules" : "floatRules:strictfpOnly",
+        "initialisation" : "initialisation:disableStaticInitialisation",
+        "intRules" : "intRules:arithmeticSemanticsIgnoringOF",
+        "integerSimplificationRules" : "integerSimplificationRules:full",
+        "javaLoopTreatment" : "javaLoopTreatment:efficient",
+        "mergeGenerateIsWeakeningGoal" : "mergeGenerateIsWeakeningGoal:off",
+        "methodExpansion" : "methodExpansion:modularOnly",
+        "modelFields" : "modelFields:treatAsAxiom",
+        "moreSeqRules" : "moreSeqRules:on",
+        "permissions" : "permissions:off",
+        "programRules" : "programRules:Java",
+        "reach" : "reach:on",
+        "runtimeExceptions" : "runtimeExceptions:ban",
+        "sequences" : "sequences:on",
+        "wdChecks" : "wdChecks:off",
+        "wdOperator" : "wdOperator:L"
+     },
+    "Labels" : { 
+        "UseOriginLabels" : true
+     },
+    "NewSMT" : { 
+        
+     },
+    "SMTSettings" : { 
+        "SelectedTaclets" : [ 
+            
+         ],
+        "UseBuiltUniqueness" : false,
+        "explicitTypeHierarchy" : false,
+        "instantiateHierarchyAssumptions" : true,
+        "integersMaximum" : 2147483645,
+        "integersMinimum" : -2147483645,
+        "invariantForall" : false,
+        "maxGenericSorts" : 2,
+        "useConstantsForBigOrSmallIntegers" : true,
+        "useUninterpretedMultiplication" : true
+     },
+    "Strategy" : { 
+        "ActiveStrategy" : "JavaCardDLStrategy",
+        "MaximumNumberOfAutomaticApplications" : 50000,
+        "Timeout" : -1,
+        "options" : { 
+            "AUTO_INDUCTION_OPTIONS_KEY" : "AUTO_INDUCTION_OFF",
+            "BLOCK_OPTIONS_KEY" : "BLOCK_CONTRACT_INTERNAL",
+            "CLASS_AXIOM_OPTIONS_KEY" : "CLASS_AXIOM_DELAYED",
+            "DEP_OPTIONS_KEY" : "DEP_ON",
+            "INF_FLOW_CHECK_PROPERTY" : "INF_FLOW_CHECK_FALSE",
+            "LOOP_OPTIONS_KEY" : "LOOP_SCOPE_INV_TACLET",
+            "METHOD_OPTIONS_KEY" : "METHOD_CONTRACT",
+            "MPS_OPTIONS_KEY" : "MPS_MERGE",
+            "NON_LIN_ARITH_OPTIONS_KEY" : "NON_LIN_ARITH_COMPLETION",
+            "OSS_OPTIONS_KEY" : "OSS_ON",
+            "QUANTIFIERS_OPTIONS_KEY" : "QUANTIFIERS_NON_SPLITTING_WITH_PROGS",
+            "QUERYAXIOM_OPTIONS_KEY" : "QUERYAXIOM_ON",
+            "QUERY_NEW_OPTIONS_KEY" : "QUERY_OFF",
+            "SPLITTING_OPTIONS_KEY" : "SPLITTING_DELAYED",
+            "STOPMODE_OPTIONS_KEY" : "STOPMODE_DEFAULT",
+            "SYMBOLIC_EXECUTION_ALIAS_CHECK_OPTIONS_KEY" : "SYMBOLIC_EXECUTION_ALIAS_CHECK_NEVER",
+            "SYMBOLIC_EXECUTION_NON_EXECUTION_BRANCH_HIDING_OPTIONS_KEY" : "SYMBOLIC_EXECUTION_NON_EXECUTION_BRANCH_HIDING_OFF",
+            "USER_TACLETS_OPTIONS_KEY1" : "USER_TACLETS_OFF",
+            "USER_TACLETS_OPTIONS_KEY2" : "USER_TACLETS_OFF",
+            "USER_TACLETS_OPTIONS_KEY3" : "USER_TACLETS_OFF",
+            "VBT_PHASE" : "VBT_SYM_EX"
+         }
+     }
+ } 
+
+\javaSource "../../../property-checker-out/case_study";
+
+\proofObligation "#Proof Obligation Settings
+#Sat Oct 05 20:32:01 CEST 2024
+contract=case_study.SortedList[case_study.SortedList\\:\\:getHead()].JML normal_behavior operation contract.0
+name=case_study.SortedList[case_study.SortedList\\:\\:getHead()].JML normal_behavior operation contract.0
+class=de.uka.ilkd.key.proof.init.FunctionalOperationContractPO
+";
+
+\proof {
+(keyLog "0" (keyUser "florian" ) (keyVersion "7ff2d9dc3ea43e071577b3f8d0e3a537f9213982"))
+
+(autoModeTime "1558")
+
+(branch "dummy ID"
+(rule "impRight" (formula "1") (newnames "heapAtPre,o,f"))
+(rule "andLeft" (formula "1"))
+(rule "andLeft" (formula "1"))
+(rule "andLeft" (formula "3"))
+(rule "andLeft" (formula "1"))
+(rule "andLeft" (formula "4"))
+(rule "andLeft" (formula "6"))
+(rule "andLeft" (formula "1"))
+(rule "notLeft" (formula "5"))
+(rule "andLeft" (formula "5"))
+(rule "andLeft" (formula "1"))
+(rule "andLeft" (formula "6"))
+(rule "notLeft" (formula "2"))
+(rule "notLeft" (formula "5"))
+(rule "eqSymm" (formula "10") (term "0,0,0,0,1"))
+(rule "eqSymm" (formula "10") (term "0,0,1,0,1"))
+(rule "assignment" (formula "10") (term "1"))
+ (builtin "One Step Simplification" (formula "10"))
+(rule "limit_java_lang_Object__inv_free_" (formula "7"))
+(rule "replace_known_left" (formula "7") (term "1") (ifseqformula "8"))
+ (builtin "One Step Simplification" (formula "7"))
+(rule "limit_java_lang_Object__inv_" (formula "5"))
+(rule "replace_known_left" (formula "5") (term "1") (ifseqformula "6"))
+ (builtin "One Step Simplification" (formula "5"))
+(rule "limit_java_lang_Object__inv_free_" (formula "9"))
+(rule "replace_known_left" (formula "9") (term "1") (ifseqformula "10"))
+ (builtin "One Step Simplification" (formula "9") (ifInst ""  (formula "8")))
+(rule "true_left" (formula "9"))
+(rule "limit_java_lang_Object__inv_" (formula "6"))
+(rule "replace_known_left" (formula "6") (term "1") (ifseqformula "7"))
+ (builtin "One Step Simplification" (formula "6") (ifInst ""  (formula "5")))
+(rule "true_left" (formula "6"))
+(rule "methodBodyExpand" (formula "12") (term "1") (newnames "heapBefore_getHead,savedHeapBefore_getHead"))
+ (builtin "One Step Simplification" (formula "12"))
+(rule "returnUnfold" (formula "12") (term "1") (inst "#v0=o"))
+(rule "variableDeclarationAssign" (formula "12") (term "1"))
+(rule "variableDeclaration" (formula "12") (term "1") (newnames "o"))
+(rule "methodCallWithAssignmentUnfoldTarget" (formula "12") (term "1") (inst "#v0=n"))
+(rule "variableDeclaration" (formula "12") (term "1") (newnames "n"))
+(rule "assignment_read_attribute_this" (formula "12"))
+ (builtin "One Step Simplification" (formula "12"))
+ (builtin "Use Operation Contract" (formula "12") (newnames "heapBefore___getHead_trampoline,result___getHead_trampoline,exc_0") (contract "case_study.Node[case_study.Node::__getHead_trampoline(boolean,boolean)].JML normal_behavior operation contract.0") (modality "diamond"))
+(branch "Post (__getHead_trampoline)"
+    (builtin "One Step Simplification" (formula "10") (ifInst ""  (formula "11")) (ifInst ""  (formula "11")) (ifInst ""  (formula "11")) (ifInst ""  (formula "11")))
+    (builtin "One Step Simplification" (formula "13"))
+   (rule "andLeft" (formula "10"))
+   (rule "andLeft" (formula "11"))
+   (rule "andLeft" (formula "10"))
+   (rule "andLeft" (formula "11"))
+   (rule "andLeft" (formula "10"))
+   (rule "notLeft" (formula "12"))
+   (rule "andLeft" (formula "12"))
+   (rule "andLeft" (formula "11"))
+   (rule "andLeft" (formula "14"))
+   (rule "andLeft" (formula "15"))
+   (rule "eqSymm" (formula "13"))
+   (rule "replace_known_right" (formula "10") (term "0") (ifseqformula "17"))
+    (builtin "One Step Simplification" (formula "10"))
+   (rule "assignment" (formula "20") (term "1"))
+    (builtin "One Step Simplification" (formula "20"))
+   (rule "applyEq" (formula "14") (term "1,1,1,1,1") (ifseqformula "13"))
+   (rule "limit_java_lang_Object__inv_free_" (formula "12"))
+   (rule "replace_known_left" (formula "12") (term "1") (ifseqformula "13"))
+    (builtin "One Step Simplification" (formula "12"))
+   (rule "limit_java_lang_Object__inv_" (formula "16"))
+   (rule "replace_known_left" (formula "16") (term "1") (ifseqformula "17"))
+    (builtin "One Step Simplification" (formula "16"))
+   (rule "cnf_rightDist" (formula "15"))
+    (builtin "One Step Simplification" (formula "15"))
+   (rule "commute_or" (formula "15"))
+   (rule "methodCallReturn" (formula "22") (term "1"))
+   (rule "assignment" (formula "22") (term "1"))
+    (builtin "One Step Simplification" (formula "22"))
+   (rule "methodCallEmpty" (formula "22") (term "1"))
+   (rule "tryEmpty" (formula "22") (term "1"))
+   (rule "emptyModality" (formula "22") (term "1"))
+   (rule "andRight" (formula "22"))
+   (branch
+      (rule "andRight" (formula "22"))
+      (branch
+         (rule "andRight" (formula "22"))
+         (branch
+             (builtin "One Step Simplification" (formula "22") (ifInst ""  (formula "14")))
+            (rule "closeTrue" (formula "22"))
+         )
+         (branch
+            (rule "andRight" (formula "22"))
+            (branch
+                (builtin "One Step Simplification" (formula "22") (ifInst ""  (formula "19")))
+               (rule "closeTrue" (formula "22"))
+            )
+            (branch
+               (rule "andRight" (formula "22"))
+               (branch
+                   (builtin "One Step Simplification" (formula "22") (ifInst ""  (formula "21")))
+                  (rule "closeTrue" (formula "22"))
+               )
+               (branch
+                  (rule "andRight" (formula "22"))
+                  (branch
+                     (rule "impRight" (formula "22"))
+                      (builtin "One Step Simplification" (formula "23") (ifInst ""  (formula "7")))
+                     (rule "closeTrue" (formula "23"))
+                  )
+                  (branch
+                      (builtin "One Step Simplification" (formula "22") (ifInst ""  (formula "6")))
+                     (rule "closeTrue" (formula "22"))
+                  )
+               )
+            )
+         )
+      )
+      (branch
+          (builtin "One Step Simplification" (formula "22"))
+         (rule "closeTrue" (formula "22"))
+      )
+   )
+   (branch
+       (builtin "One Step Simplification" (formula "22"))
+      (rule "closeTrue" (formula "22"))
+   )
+)
+(branch "Exceptional Post (__getHead_trampoline)"
+    (builtin "One Step Simplification" (formula "13"))
+    (builtin "One Step Simplification" (formula "10") (ifInst ""  (formula "11")) (ifInst ""  (formula "11")) (ifInst ""  (formula "11")) (ifInst ""  (formula "11")))
+   (rule "andLeft" (formula "10"))
+   (rule "andLeft" (formula "10"))
+   (rule "andLeft" (formula "12"))
+   (rule "notLeft" (formula "10"))
+   (rule "close" (formula "13") (ifseqformula "12"))
+)
+(branch "Pre (__getHead_trampoline)"
+    (builtin "One Step Simplification" (formula "12") (ifInst ""  (formula "10")) (ifInst ""  (formula "10")) (ifInst ""  (formula "1")))
+   (rule "Class_invariant_axiom_for_case_study_SortedList" (formula "6") (ifseqformula "11"))
+   (rule "andLeft" (formula "6"))
+   (rule "andLeft" (formula "6"))
+   (rule "eqSymm" (formula "6"))
+   (rule "replace_known_right" (formula "6") (term "0,1,0") (ifseqformula "12"))
+    (builtin "One Step Simplification" (formula "6"))
+   (rule "replace_known_right" (formula "7") (term "0,0") (ifseqformula "12"))
+    (builtin "One Step Simplification" (formula "7"))
+   (rule "replace_known_right" (formula "8") (term "0,0") (ifseqformula "12"))
+    (builtin "One Step Simplification" (formula "8"))
+   (rule "replace_known_left" (formula "14") (term "1,0") (ifseqformula "7"))
+    (builtin "One Step Simplification" (formula "14"))
+   (rule "disjointDefinition" (formula "8"))
+   (rule "Free_class_invariant_axiom_for_case_study_SortedList" (formula "11") (ifseqformula "13"))
+   (rule "andLeft" (formula "11"))
+   (rule "andLeft" (formula "11"))
+   (rule "replace_known_right" (formula "13") (term "0,0,1") (ifseqformula "14"))
+    (builtin "One Step Simplification" (formula "13"))
+   (rule "applyEq" (formula "11") (term "0,0") (ifseqformula "9"))
+   (rule "ssubsortDirect" (formula "11") (term "0"))
+    (builtin "One Step Simplification" (formula "11"))
+   (rule "applyEq" (formula "13") (term "0,0") (ifseqformula "9"))
+   (rule "ssubsortDirect" (formula "13") (term "0"))
+    (builtin "One Step Simplification" (formula "13"))
+   (rule "replace_known_left" (formula "16") (term "0") (ifseqformula "13"))
+    (builtin "One Step Simplification" (formula "16"))
+   (rule "referencedObjectIsCreatedRight" (formula "16") (ifseqformula "14"))
+   (rule "close" (formula "16") (ifseqformula "1"))
+)
+(branch "Null reference (n = null)"
+    (builtin "One Step Simplification" (formula "12") (ifInst ""  (formula "10")))
+   (rule "closeTrue" (formula "12"))
+)
+)
+}

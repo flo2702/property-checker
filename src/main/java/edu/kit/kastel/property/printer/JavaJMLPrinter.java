@@ -571,7 +571,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
             if (factory instanceof NullnessLatticeAnnotatedTypeFactory) {
                 // Nullness Checker
-                SortedSet<Contract> contracts = (SortedSet<Contract>) factory.getContractsFromMethod().getContracts(TreeUtils.elementFromDeclaration(tree));
+                Set<Contract> contracts = factory.getContractsFromMethod().getContracts(TreeUtils.elementFromDeclaration(tree));
                 StringToJavaExpression stringToJavaExpr =
                         stringExpr -> StringToJavaExpression.atMethodBody(stringExpr, tree, factory.getChecker());
 

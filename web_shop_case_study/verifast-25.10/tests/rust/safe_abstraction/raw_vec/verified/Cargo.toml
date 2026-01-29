@@ -1,0 +1,8 @@
+[package]
+name = "raw_vec"
+version = "0.1.0"
+
+[dependencies]
+
+[lib]
+path = "lib.rs"

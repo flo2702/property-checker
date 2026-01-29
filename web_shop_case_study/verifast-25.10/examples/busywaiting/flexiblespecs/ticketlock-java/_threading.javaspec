@@ -1,0 +1,42 @@
+/*@
+
+predicate_family Runnable_pre(Class c)(Runnable runnable, int threadId);
+
+@*/
+
+interface Runnable {
+  public void run();
+  //@ requires Runnable_pre(this.getClass())(this, currentThread);
+  //@ ensures obs(currentThread, _, {});
+  //@ terminates;
+}
+
+/*@
+
+typedef lemma void Thread_start_ghost_op(int forkerId, list<pathcomp> forkerPhase, list<pair<void *, level> > obs0, list<pair<void *, level> > forkerObs, Runnable runnable, predicate() pre, predicate() post)(int forkeeId);
+  requires obs(forkerId, cons(Forker, forkerPhase), forkerObs) &*& obs(forkeeId, cons(Forkee, forkerPhase), remove_all(forkerObs, obs0)) &*& pre();
+  ensures post() &*& Runnable_pre(runnable.getClass())(runnable, forkeeId);
+
+@*/
+
+final class Thread {
+
+  //@ predicate valid(Runnable runnable);
+  
+  public Thread(Runnable runnable);
+  //@ requires true;
+  //@ ensures valid(runnable);
+  //@ terminates;
+
+  public void start();
+  /*@
+  requires
+    obs(currentThread, ?phase, ?obs) &*&
+    valid(?runnable) &*& is_Thread_start_ghost_op(_, currentThread, phase, obs, ?forkerObs, runnable, ?pre, ?post) &*&
+    length(remove_all(forkerObs, obs)) == length(obs) - length(forkerObs) &*&
+    pre() &*& call_perm_(currentThread, runnable.getClass());
+  @*/
+  //@ ensures post();
+  //@ terminates;
+
+}

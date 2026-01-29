@@ -1,0 +1,46 @@
+let verify_crypto
+  verifast  -prover redux -target 32bit
+in
+
+verify_crypto -I crypto_ccs -allow_assume -shared -emit_dll_vfmanifest -emit_dll_vfmanifest_as libann_polarssl.dll.vfmanifest crypto_ccs/crypto.vfmanifest annotated_api/mbedTLS_definitions.vfmanifest crypto_ccs/crypto/auxiliary_definitions.c crypto_ccs/crypto/ccs.c crypto_ccs/crypto/cryptogram.c crypto_ccs/crypto/cryptogram_levels.c crypto_ccs/crypto/public_chars.c crypto_ccs/crypto/interpret.c crypto_ccs/crypto/identifiers.c crypto_ccs/crypto/memcmp.c annotated_api/havege_util.c annotated_api/attacker.c
+
+begin_parallel
+
+cd protocols
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest dummy/dummy.c dummy/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest hmac/hmac.c hmac/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest rpc/rpc.c rpc/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest enc_then_hmac/enc_then_hmac.c enc_then_hmac/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest hmac_then_enc/hmac_then_enc.c hmac_then_enc/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest enc_and_hmac/enc_and_hmac.c enc_and_hmac/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest auth_enc/auth_enc.c auth_enc/main_app.c
+  verify_crypto -fno-strict-aliasing -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest sign/sign.c sign/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest yahalom/yahalom.c yahalom/main_app.c
+  verify_crypto -I ../crypto_ccs -allow_assume pthread.o ../libann_polarssl.dll.vfmanifest nsl/nsl.c nsl/main_app.c
+cd ..
+
+begin_sequential
+
+cd symbolic_model
+  verify_crypto -fno-strict-aliasing -I ../crypto_ccs -I ../annotated_api/ -allow_assume -shared -emit_dll_vfmanifest -emit_dll_vfmanifest_as symbolic.dll.vfmanifest ../libann_polarssl.so src/general.c src/debug.c src/item.c src/item_tags.c src/well_formed.c src/item_constraints.c src/serialization.c src/deserialization.c src/invariants.c src/key_register.c src/data_item.c src/pair_item.c src/nonce_item.c src/hash_item.c src/key_item.c src/hmac_item.c src/symmetric_encrypted_item.c src/asymmetric_encrypted_item.c src/asymmetric_signature_item.c src/asymmetric_authenticated_encryption.c src/principal_ids.c src/network.c src/symbolic.c src/attacker.c
+  cd protocols
+
+    begin_parallel
+
+    verifast -read_options_from_source_file -allow_assume pthread.o ../../libann_polarssl.dll.vfmanifest ../symbolic.dll.vfmanifest dummy_protocol/dummy_protocol.c dummy_protocol/main_app.c
+    verify_crypto -I ../../crypto_ccs -allow_assume pthread.o ../../libann_polarssl.dll.vfmanifest ../symbolic.dll.vfmanifest secure_storage/secure_storage.c secure_storage/main_app.c
+    verify_crypto -I ../../crypto_ccs -allow_assume pthread.o ../../libann_polarssl.dll.vfmanifest ../symbolic.dll.vfmanifest secure_storage_asym/secure_storage_asym.c secure_storage_asym/main_app.c
+    verify_crypto -I ../../crypto_ccs -allow_assume pthread.o ../../libann_polarssl.dll.vfmanifest ../symbolic.dll.vfmanifest rpc/rpc.c rpc/main_app.c
+    verify_crypto -I ../../crypto_ccs -allow_assume pthread.o ../../libann_polarssl.dll.vfmanifest ../symbolic.dll.vfmanifest recursive_otway_rees/recursive_otway_rees.c recursive_otway_rees/main_app.c
+
+    end_parallel
+
+  cd ..
+cd ..
+
+end_sequential
+
+end_parallel
+
+del symbolic_model/symbolic.dll.vfmanifest
+del libann_polarssl.dll.vfmanifest

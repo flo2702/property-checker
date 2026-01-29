@@ -146,6 +146,12 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 continue;
             }
 
+            if (field.asType().getKind().equals(TypeKind.TYPEVAR)) {
+                // Don't create OwnFields and FieldTypes predicates for type variables
+                // TODO is this always right?
+                continue;
+            }
+
             AnnotationMirror packingType = propertyFactory.getAnnotatedType(field).getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
             PredicateUse ownFields = getOwnFieldsPredicateUse(packingType, field.asType(), name, f -> "?" + fieldOfFieldNamer.apply(field, f));
             PredicateUse fieldsOfFieldTypes = getFieldTypesPredicateUse(packingType, field.asType(), name, f -> fieldOfFieldNamer.apply(field, f));
@@ -301,6 +307,11 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 }
                 for (int i = 0; i < enclClassAssumptionCounter; ++i) {
                     Pair<TypeMirror, VerifastContract> assumption = enclClassAssumptionsToGenerate.get(i);
+
+                    if (assumption.second == null) {
+                        continue;
+                    }
+
                     println();
                     printlnAligned(String.format("public static void assume%s(%s arg)", i, unannotatedSimpleTypeName(assumption.first, false)));
                     indent();
@@ -501,19 +512,19 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 receiverOutputType = propertyFactory.getInitialized();
             }
             if (receiverOutputType != null) {
-                VariableElement el = TreeUtils.elementFromDeclaration(tree.getReceiverParameter());
+                TypeMirror receiverType = propertyFactory.getAnnotatedType(tree).getReceiverType().getUnderlyingType();
                 if (propertyFactory.isSideEffectFree(element)) {
                     // Side-effect free methods reuse the precondition variables instead of
                     // defining new ones.
                     verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
-                            receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_r"));
+                            receiverOutputType, receiverType, "this", f -> "this_" + f.getSimpleName() + "_r"));
                     verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
-                            receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_r"));
+                            receiverOutputType, receiverType, "this", f -> "this_" + f.getSimpleName() + "_r"));
                 } else {
                     verifastContract.getEnsuresClause().addBefore(getOwnFieldsPredicateUse(
-                            receiverOutputType, el, f -> "?this_" + f.getSimpleName() + "_e"));
+                            receiverOutputType, receiverType, "this", f -> "?this_" + f.getSimpleName() + "_e"));
                     verifastContract.getEnsuresClause().addBefore(getFieldTypesPredicateUse(
-                            receiverOutputType, el, f -> "this_" + f.getSimpleName() + "_e"));
+                            receiverOutputType, receiverType, "this", f -> "this_" + f.getSimpleName() + "_e"));
                 }
             }
         }
@@ -595,7 +606,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                 if (!(returnType instanceof AnnotatedTypeMirror.AnnotatedExecutableType)
                         && returnType.getKind() != TypeKind.VOID
                         && !AnnotationUtils.areSame(returnType.getEffectiveAnnotationInHierarchy(getTop(propertyFactory)), getTop(propertyFactory))) {
-                    if (returnType.getKind().isPrimitive()) {
+                    if (returnType.getKind().isPrimitive() || returnType.toString().startsWith("java.") || returnType.getKind().equals(TypeKind.TYPEVAR)) {
                         verifastContract.getEnsuresClause().addVar("result", null);
                     } else {
                         verifastContract.getEnsuresClause().addVar("result", "result != null");
@@ -663,9 +674,8 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
             } else {
                 verifastContract.getRequiresClause().addVar(paramName, paramName + " != null");
                 verifastContract.getEnsuresClause().addVar(paramName, paramName + " != null");
-                if (!javacType.toString().startsWith("java.")) {
-                    // Don't create OwnFields and FieldTypes predicates for library types
-                    // TODO add cmd option to customize this behavior
+                if (!javacType.toString().startsWith("java.") && ! javacType.getKind().equals(TypeKind.TYPEVAR)) {
+                    // Don't create OwnFields and FieldTypes predicates for library types or type variables; see above
 
                     verifastContract.getRequiresClause().addVarPred(paramName, getOwnFieldsPredicateUse(
                             inputPackingTypes.get(i + 1), el, f -> "?" + paramName + "_" + f.getSimpleName() + "_r"
@@ -1245,7 +1255,7 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
         TypeMirror underlyingType = packingTypeMirror.getUnderlyingType();
         String frame = unannotatedSimpleTypeName(getTypeFrame(packingType, underlyingType), false);
 
-        if (frame.equals("Object")) {
+        if (frame.equals("Object") && tree.getInitializer() != null && !tree.getInitializer().type.getKind().equals(TypeKind.NULL)) {
             packingTypeMirror = propertyFactory.getAnnotatedType(tree.getInitializer());
             packingType = packingTypeMirror.getEffectiveAnnotationInHierarchy(propertyFactory.getInitialized());
             underlyingType = packingTypeMirror.getUnderlyingType();

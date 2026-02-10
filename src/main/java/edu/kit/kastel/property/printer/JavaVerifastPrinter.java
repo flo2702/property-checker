@@ -734,18 +734,18 @@ public class JavaVerifastPrinter extends PropertyCheckerPrettyPrinter {
                         if (propertyFactory.isSideEffectFree(element)) {
                             // Side-effect free methods reuse the precondition variables instead of
                             // defining new ones.
-                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                            verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
                         } else {
-                            verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
+                            verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
                         }
                     }
                 } else if ((!outputWt || trampoline || TRANSLATION_RAW) && !outputPat.isTrivial() && !outputPat.isInv()) {
                     if (propertyFactory.isSideEffectFree(element)) {
                         // Side-effect free methods reuse the precondition variables instead of
                         // defining new ones.
-                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
+                        verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_r"));
                     } else {
-                        verifastContract.getEnsuresClause().addBefore(new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
+                        verifastContract.getEnsuresClause().addVarPred(paramName, new PredicateUse(outputPa, paramName, f -> paramName + "_" + f.getSimpleName() + "_e"));
                     }
                 }
 

@@ -76,7 +76,7 @@
      }
  } 
 
-\javaSource "../../../property-checker-out/case_study";
+\javaSource "../src_key_raw/case_study";
 
 \proofObligation 
 // Proof-Obligation settings

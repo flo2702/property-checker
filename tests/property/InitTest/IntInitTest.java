@@ -20,7 +20,7 @@ public final class IntInitTest {
         this.even = 2;
         this.odd = 1;
         
-        // :: error: initialization.fields.uninitialized
+        // :: error: remainder.initialization.fields.uninitialized
         this.nonHelper();
     }
 

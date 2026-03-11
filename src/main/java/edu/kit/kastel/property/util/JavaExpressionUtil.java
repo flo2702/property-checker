@@ -143,4 +143,8 @@ public class JavaExpressionUtil {
             return !noAlias;
         }
     }
+
+    public static boolean isLiteral(String s) {
+        return s.equals("null") || s.matches("-?(\\d+|(\\d*\\.\\d+))");
+    }
 }

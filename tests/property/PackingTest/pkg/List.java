@@ -18,7 +18,7 @@ public final class List {
     @JMLClause("ensures this.head == head && this.tail == null && this.size == 1;")
     @JMLClause("assignable \\nothing;")
     @NonMonotonic
-    // :: error: length.inconsistent.constructor.type :: error: initialization.fields.uninitialized
+    // :: error: length.inconsistent.constructor.type :: error: length.initialization.fields.uninitialized
     public @Unique @Length(len="1") List(int head) {
         this.head = head;
         this.tail = null;
@@ -28,7 +28,7 @@ public final class List {
     @JMLClause("ensures this.head == head && this.tail == tail;")
     @JMLClause("assignable \\nothing;")
     @NonMonotonic
-    // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied :: error: initialization.fields.uninitialized
+    // :: error: length.inconsistent.constructor.type :: error: length.contracts.postcondition.not.satisfied :: error: length.initialization.fields.uninitialized
     public @Unique @Length(len="n+1") List(int head, @Nullable @Length(len="n") List tail, int n) {
         this.head = head;
         this.tail = tail;
@@ -38,7 +38,7 @@ public final class List {
     @EnsuresLength(value="this", len="n+1")
     @JMLClause("assignable this.*;")
     @NonMonotonic
-    // :: error: length.contracts.postcondition.not.satisfied :: error: initialization.fields.uninitialized
+    // :: error: length.contracts.postcondition.not.satisfied :: error: length.initialization.fields.uninitialized
     public void insert(
             @Unique @Length(len="n") List this,
             int newHead,

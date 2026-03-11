@@ -6,6 +6,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.basetype.BaseTypeChecker;
 import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
+import org.checkerframework.dataflow.cfg.visualize.DOTCFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
@@ -16,6 +17,7 @@ import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationMirrorSet;
 import org.checkerframework.javacutil.AnnotationUtils;
 import org.checkerframework.javacutil.TreeUtils;
+import org.checkerframework.javacutil.UserError;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -23,10 +25,7 @@ import javax.lang.model.type.TypeKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public abstract class PackingClientAnnotatedTypeFactory<
         Value extends PackingClientValue<Value>,
@@ -169,8 +168,33 @@ public abstract class PackingClientAnnotatedTypeFactory<
             try {
                 Files.createDirectories(Path.of(checker.getOption("flowdotdir")));
             } catch (IOException e) { }
+            String flowdotdir = checker.getOption("flowdotdir");
+            if (flowdotdir.equals("")) {
+                throw new UserError("Empty string provided for -Aflowdotdir command-line argument");
+            }
+            boolean verbose = checker.hasOption("verbosecfg");
+
+            Map<String, Object> args = new HashMap<>(2);
+            args.put("outdir", flowdotdir);
+            args.put("verbose", verbose);
+            args.put("checkerName", getFlowdotFilenamePostfix());
+
+            CFGVisualizer<Value, Store, TransferFunction> res = new DOTCFGVisualizer<>();
+            res.init(args);
+            return res;
+        } else {
+            return super.createCFGVisualizer();
         }
-        return super.createCFGVisualizer();
+    }
+
+    protected String getFlowdotFilenamePostfix() {
+        String checkerName = checker.getClass().getSimpleName();
+        if (checkerName.endsWith("Checker")) {
+            checkerName = checkerName.substring(0, checkerName.length() - "Checker".length());
+        } else if (checkerName.endsWith("Subchecker")) {
+            checkerName = checkerName.substring(0, checkerName.length() - "Subchecker".length());
+        }
+        return checkerName;
     }
 
     public boolean isMonotonicMethod(MethodTree tree) {

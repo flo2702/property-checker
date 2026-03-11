@@ -8,10 +8,10 @@ import org.checkerframework.dataflow.qual.*;
 
 class ReferenceSplitting {
 
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @Unique Foo field;
 
-    // :: error: initialization.fields.uninitialized
+    // :: error: exclusivity.initialization.fields.uninitialized
     void refTransfer(@Unique ReferenceSplitting this) {
         @ReadOnly @Nullable Foo x;
         @Unique @Nullable Foo a;

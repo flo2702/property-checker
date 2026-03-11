@@ -43,7 +43,7 @@ public final class LatticeValue extends PackingClientValue<LatticeValue> {
 			TypeMirror underlyingType) {
 		super(analysis, annotations, underlyingType);
 
-		var factory = (LatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+		var factory = analysis.getTypeFactory();
 		var anno = factory.getQualifierHierarchy().findAnnotationInHierarchy(annotations, factory.getTop());
 		propertyAnnotation = factory.getLattice().getPropertyAnnotation(anno == null ? factory.getTop() : anno);
 		JavaExpression parsedRefinement = null;

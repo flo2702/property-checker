@@ -15,7 +15,7 @@ public final class InitializationFinalClass {
     @NonMonotonic
     InitializationFinalClass() {
         this.unique = new Obj();
-        // :: error: initialization.fields.uninitialized
+        // :: error: nullness.initialization.fields.uninitialized
         this.foo();
     }
 

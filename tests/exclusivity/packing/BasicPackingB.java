@@ -76,7 +76,7 @@ public final class BasicPackingB extends BasicPackingA {
     }
 
     @NonMonotonic
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized
     void incorrectModification(@Unique BasicPackingB this) {
         this.bField = null;
     }

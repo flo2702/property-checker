@@ -17,11 +17,11 @@
 package edu.kit.kastel.property.lattice;
 
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.Parameter;
+import edu.kit.kastel.property.util.Pair;
 import edu.kit.kastel.property.util.UnorderedPair;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -146,6 +146,7 @@ public class Lattice {
         try {
             List<Object> actualParams = new ArrayList<>();
             for (Parameter param : type.getParameters()) {
+                @SuppressWarnings("deprecation")
                 String paramStr = AnnotationUtils.getElementValue(mirror, param.getName(), String.class, true);
                 actualParams.add(param.getType().fromString(paramStr));
             }

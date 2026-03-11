@@ -19,6 +19,7 @@ package edu.kit.kastel.property.subchecker.lattice;
 import com.google.common.collect.Streams;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.packing.PackingClientStore;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
@@ -111,7 +112,9 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 					if (annos.isEmpty()) {
 						return false;
 					}
-					if (factory.getLattice().getEvaluatedPropertyAnnotation(annos.first()) != null) {
+					EvaluatedPropertyAnnotation epa = factory.getLattice().getEvaluatedPropertyAnnotation(annos.first());
+					if (epa != null && epa.isCheckable()) {
+						// entry type is independent
 						return false;
 					}
 					return entry.getValue().getRefinementParams(entry.getKey()).parallel().anyMatch(exprAnalyzer::test);
@@ -124,13 +127,10 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 				.forEach(entry -> entry.setValue(createTopValue(entry.getKey().getElement().asType())));
 		fieldValues.entrySet().removeIf(isDependent);
 		methodValues.entrySet().removeIf(isDependent);
-		Optional.ofNullable(thisValue)
-				// special case for non null annotations on `this` - they can never be invalidated
-				.filter(val -> !val.getPropertyAnnotation().getAnnotationType().isNonNull())
-				.filter(val -> isDependent.test(Map.entry(new ThisReference(val.getUnderlyingType()), val)))
-				.ifPresent(val -> thisValue = createTopValue(val.getUnderlyingType()));
 
-
+		if (thisValue != null && dependency instanceof FieldAccess && !thisValue.getPropertyAnnotation().getAnnotationType().isNonNull()) {
+			thisValue = createTopValue(thisValue.getUnderlyingType());
+		}
 	}
 
 	protected LatticeValue createTopValue(TypeMirror underlyingType) {

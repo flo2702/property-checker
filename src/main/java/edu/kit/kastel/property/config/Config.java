@@ -18,10 +18,10 @@ package edu.kit.kastel.property.config;
 
 import edu.kit.kastel.property.lattice.Bound;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
-import edu.kit.kastel.property.lattice.SubAnnotationRelation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.PropertyCheckable;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType.WellFormednessCheckable;
-import org.checkerframework.javacutil.Pair;
+import edu.kit.kastel.property.lattice.SubAnnotationRelation;
+import edu.kit.kastel.property.util.Pair;
 
 @SuppressWarnings("nls")
 public final class Config {
@@ -31,6 +31,10 @@ public final class Config {
     public static final String INPUT_DIR_OPTION = "inDir";
     public static final String OUTPUT_DIR_OPTION = "outDir";
     public static final String SHOULD_NOT_USE_TRAMPOLINE_OPTION = "shouldNotUseTrampoline";
+
+    public static final String OUTPUT_LANG_OPTION = "outputLang";
+    public static final String OUTPUT_LANG_JML = "jml";
+    public static final String OUTPUT_LANG_VERIFAST = "verifast";
 
     public static final String TRANSLATION_ONLY_OPTION = "translationOnly";
     public static final String NO_EXCLUSITIVY_OPTION = "noExclusivity";

@@ -10,6 +10,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeVisitor;
 import edu.kit.kastel.property.subchecker.lattice.LatticeVisitor;
 import edu.kit.kastel.property.util.Packing;
+import edu.kit.kastel.property.util.Pair;
 import edu.kit.kastel.property.util.TypeUtils;
 import edu.kit.kastel.property.util.Union;
 import org.apache.commons.lang3.tuple.Triple;
@@ -20,7 +21,6 @@ import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.util.AnnotatedTypes;
 import org.checkerframework.javacutil.ElementUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -128,7 +128,7 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
             if (node.getModifiers().getFlags().contains(Modifier.STATIC)) {
                 result.addStaticInvariant(
                         getEnclClassName().toString(),
-                        new LatticeVisitor.Invariant(node.getName().toString(), varType));
+                        new LatticeVisitor.Invariant(node, varType));
 
                 if (node.getInitializer() != null) {
                     result.addStaticInitializer(getEnclClassName().toString(), Union.left(node));
@@ -136,7 +136,7 @@ public class NullnessLatticeVisitor extends NullnessNoInitVisitor implements Coo
             } else {
                 result.addInstanceInvariant(
                         getEnclClassName().toString(),
-                        new LatticeVisitor.Invariant(node.getName().toString(), varType));
+                        new LatticeVisitor.Invariant(node, varType));
 
                 if (node.getInitializer() != null) {
                     result.addInstanceInitializer(getEnclClassName().toString(), Union.left(node));

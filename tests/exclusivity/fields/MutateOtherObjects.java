@@ -6,11 +6,11 @@ import org.checkerframework.dataflow.qual.*;
 
 class MutateOtherObjects {
 
-    // :: error: initialization.field.uninitialized
+    // :: error: nullness.initialization.field.uninitialized
     @Dependable @Unique Foo foo;
 
     @NonMonotonic
-    // :: eror: packing.postcondition.not.satisfied
+    // :: error: packing.postcondition.not.satisfied
     void mutate(@Unique MutateOtherObjects this, @Unique MutateOtherObjects other) {
         this.foo = new Foo();
 

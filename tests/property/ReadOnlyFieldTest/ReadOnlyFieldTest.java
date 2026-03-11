@@ -12,7 +12,7 @@ public final class ReadOnlyFieldTest {
 
     @ReadOnly @UnknownInitialization(Object.class) ReadOnlyFieldTest test2;
 
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized :: error: interval.initialization.fields.uninitialized
     public ReadOnlyFieldTest() {
     }
 

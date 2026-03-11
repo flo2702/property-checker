@@ -1,0 +1,46 @@
+package case_study;
+
+import edu.kit.kastel.property.util.*;
+import edu.kit.kastel.property.checker.qual.*;
+import org.checkerframework.checker.nullness.qual.*;
+import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
+import edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual.*;
+import edu.kit.kastel.property.packing.qual.*;
+import org.checkerframework.checker.initialization.qual.*;
+import org.checkerframework.dataflow.qual.*;
+
+public final class Product {
+    
+    public final String title;
+    public final @Interval(min="0", max="2147483647") int price;
+    public final @Dependable @Interval(min="0", max="18") int ageRestriction;
+
+    @VerifastEnsuresClause("this_title_e == title &*& this_price_e == price &*& this_ageRestriction_e == ageRestriction")
+    @JMLClause("ensures this.title == title && this.price == price && this.ageRestriction == ageRestriction;")
+    @JMLClause("assignable \\nothing;") @Pure
+    // :: error: allowedfor.inconsistent.constructor.type
+    public @AllowedFor(age="ageRestriction") Product(
+            String title,
+            @Interval(min="0", max="2147483647") int price,
+            @Interval(min="0", max="18") int ageRestriction) {
+        this.title = title;
+        this.price = price;
+        this.ageRestriction = ageRestriction;
+
+        // Why is this necessary?
+        Assert._verifast_open_translationOnly("Interval(price, 0, 2147483647)");
+        Assert._verifast_close_translationOnly("Interval(price, 0, 2147483647)");
+        Assert._verifast_open_translationOnly("Interval(ageRestriction, 0, 18)");
+        Assert._verifast_close_translationOnly("Interval(ageRestriction, 0, 18)");
+    }
+
+    @VerifastSuppressTranslatedContract
+    @VerifastRequiresClause("[?frac](this.price |-> ?this_price_r)")
+    @VerifastEnsuresClause("[frac](this.price |-> this_price_r)")
+    @VerifastEnsuresClause("this_price_r == result")
+    @JMLClause("ensures \\result == this.price;")
+    @JMLClause("assignable \\strictly_nothing;") @Pure
+    public int getPrice(@MaybeAliased Product this) {
+        return price;
+    }
+}

@@ -35,7 +35,7 @@ public class IntWFTest {
     // :: error: remainder.type.invalid
     @Remainder(remainder="3", modulus="2") int malFormedModulus4;
 
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized :: error: remainder.initialization.fields.uninitialized :: error: interval.initialization.fields.uninitialized
     public IntWFTest() {
     }
 }

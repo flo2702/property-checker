@@ -11,7 +11,7 @@ public class ArraysTest {
     Object[] defaultField;
     @MaybeAliased Object @MaybeAliased [] aliasedField;
 
-    // :: error: initialization.fields.uninitialized
+    // :: error: nullness.initialization.fields.uninitialized
     public ArraysTest() {}
 
     public void foo0() {

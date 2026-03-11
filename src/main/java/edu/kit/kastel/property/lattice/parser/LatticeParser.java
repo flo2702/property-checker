@@ -20,8 +20,8 @@ import edu.kit.kastel.property.lattice.*;
 import edu.kit.kastel.property.lattice.Bound.BoundType;
 import edu.kit.kastel.property.subchecker.lattice.LatticeAnnotatedTypeFactory;
 import edu.kit.kastel.property.util.ClassUtils;
+import edu.kit.kastel.property.util.Pair;
 import edu.kit.kastel.property.util.UnorderedPair;
-import org.checkerframework.javacutil.Pair;
 
 import java.io.IOException;
 import java.io.StreamTokenizer;

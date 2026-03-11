@@ -21,8 +21,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.checkerframework.javacutil.Pair;
-
 public class UnorderedPair<T> {
 
     private final Set<T> set = new HashSet<>();

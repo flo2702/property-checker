@@ -57,6 +57,7 @@ import java.util.*;
     Config.OUTPUT_DIR_OPTION,
     Config.QUAL_PKG_OPTION,
     Config.TRANSLATION_ONLY_OPTION,
+    Config.OUTPUT_LANG_OPTION,
     Config.NO_EXCLUSITIVY_OPTION,
     Config.NO_INFER_UNPACK_OPTION,
     Config.KEEP_GENERICS_OPTION,
@@ -242,7 +243,7 @@ public final class PropertyChecker extends PackingChecker {
     private List<String> getShouldNotUseTrampoline() {
         if (shouldNotUseTrampoline == null) {
             String option = getOption(Config.SHOULD_NOT_USE_TRAMPOLINE_OPTION, "");
-            shouldNotUseTrampoline = Arrays.asList(option.split(Config.SPLIT));
+            shouldNotUseTrampoline = option.isEmpty() ? List.of() : Arrays.asList(option.split(Config.SPLIT));
         }
 
         return Collections.unmodifiableList(shouldNotUseTrampoline);

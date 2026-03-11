@@ -48,8 +48,9 @@ public abstract class PackingClientTransfer<
         super(analysis, forceConcurrentSemantics);
     }
 
-    public PackingClientAnalysis getAnalysis() {
-        return (PackingClientAnalysis) analysis;
+    @SuppressWarnings("unchecked")
+    public PackingClientAnalysis<?,?,?> getAnalysis() {
+        return (PackingClientAnalysis<?,?,?>) analysis;
     }
 
     protected abstract V initialThisValue(MethodTree methodDeclTree);

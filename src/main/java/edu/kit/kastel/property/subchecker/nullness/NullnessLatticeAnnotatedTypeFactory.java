@@ -13,6 +13,7 @@ import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
 import edu.kit.kastel.property.packing.qual.Dependable;
 import edu.kit.kastel.property.packing.qual.NonMonotonic;
 import edu.kit.kastel.property.subchecker.lattice.CooperativeAnnotatedTypeFactory;
+import edu.kit.kastel.property.util.Pair;
 import org.checkerframework.checker.nullness.*;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -30,7 +31,6 @@ import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.TreeAnnotator;
 import org.checkerframework.javacutil.AnnotationUtils;
-import org.checkerframework.javacutil.Pair;
 import org.checkerframework.javacutil.TreeUtils;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -202,6 +202,14 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         return !AnnotationUtils.containsSameByClass(getDeclAnnotations(el), NonMonotonic.class);
     }
 
+    public AnnotationMirror getNonNull() {
+        return NONNULL;
+    }
+
+    public AnnotationMirror getNullable() {
+        return NULLABLE;
+    }
+
     @Override
     public AnnotatedTypeMirror getAnnotatedTypeBefore(JavaExpression expr, ExpressionTree tree) {
         PackingFieldAccessAnnotatedTypeFactory initFactory =
@@ -278,5 +286,4 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
         res.addAnnotations(annos);
         return res;
     }
-
 }

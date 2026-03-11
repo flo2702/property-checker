@@ -16,13 +16,12 @@
  */
 package tests.property;
 
-import java.io.File;
-import java.util.List;
-
+import edu.kit.kastel.property.checker.PropertyChecker;
 import org.apache.commons.lang3.ObjectUtils;
 import org.checkerframework.framework.test.CheckerFrameworkPerDirectoryTest;
 
-import edu.kit.kastel.property.checker.PropertyChecker;
+import java.io.File;
+import java.util.List;
 
 @SuppressWarnings("nls")
 public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTest {
@@ -32,10 +31,20 @@ public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTe
     }
 
     public PropertyCheckerTest(List<File> testFiles, String latticeFile, String classesDir, String qualPackage) {
+        this(testFiles, latticeFile, classesDir, qualPackage, new String[0]);
+    }
+
+    public PropertyCheckerTest(List<File> testFiles, String latticeFile, String classesDir, String qualPackage, String... extraArgs) {
         super(
                 testFiles,
                 PropertyChecker.class,
                 "property",
+                getArgs(testFiles, latticeFile, classesDir, qualPackage, extraArgs)
+                );
+    }
+
+    private static String[] getArgs(List<File> testFiles, String latticeFile, String classesDir, String qualPackage, String... extraArgs) {
+        String[] defaultArgs = new String[]{
                 "-Anomsgtext",
                 "-Astubs=stubs/",
                 "-nowarn",
@@ -45,6 +54,10 @@ public abstract class PropertyCheckerTest extends CheckerFrameworkPerDirectoryTe
                 "-APropertyChecker_lattices=" + latticeFile,
                 "-APropertyChecker_qualPkg=" + qualPackage,
                 "-APropertyChecker_translationOnly=" + ObjectUtils.defaultIfNull(System.getProperty("translationOnly"), "false")
-                );
+        };
+        String[] args = new String[defaultArgs.length + extraArgs.length];
+        System.arraycopy(defaultArgs, 0, args, 0, defaultArgs.length);
+        System.arraycopy(extraArgs, 0, args, defaultArgs.length, extraArgs.length);
+        return args;
     }
 }

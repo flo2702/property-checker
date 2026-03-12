@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-java -jar key-2.12.4-dev-exe.jar
+java -DKEY_JAVAC_DISABLE=true -jar key-2.12.4-dev-exe.jar

@@ -159,6 +159,8 @@ public class PackingAnnotatedTypeFactory
             // Exclusivity checker considers unassigned fields with default value null unique
             if (factory instanceof ExclusivityAnnotatedTypeFactory exclFactory) {
                 refType.replaceAnnotations(List.of(exclFactory.UNIQUE));
+            } else if (factory instanceof NullnessLatticeAnnotatedTypeFactory nullnessFactory && refType.getKind().isPrimitive()) {
+                refType.replaceAnnotations(List.of(nullnessFactory.getNonNull()));
             } else {
                 refType.replaceAnnotations(factory.getQualifierHierarchy().getTopAnnotations());
             }

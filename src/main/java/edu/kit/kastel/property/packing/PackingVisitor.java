@@ -81,6 +81,12 @@ public class PackingVisitor
             Tree valueTree,
             @CompilerMessageKey String errorKey,
             Object... extraArgs) {
+        // Primitives are always initialized
+        if (varType.getKind().isPrimitive()) {
+            return;
+        }
+
+        // Try to infer a packing statement to avoid the error
         if (valueTree.toString().equals("this")
                 && canInferPackingStatement(
                         valueTree,

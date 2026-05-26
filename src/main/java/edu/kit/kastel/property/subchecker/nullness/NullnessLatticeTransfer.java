@@ -9,8 +9,13 @@ import org.checkerframework.checker.nullness.NullnessNoInitAnalysis;
 import org.checkerframework.checker.nullness.NullnessNoInitStore;
 import org.checkerframework.checker.nullness.NullnessNoInitTransfer;
 import org.checkerframework.checker.nullness.NullnessNoInitValue;
+import org.checkerframework.dataflow.analysis.TransferInput;
+import org.checkerframework.dataflow.analysis.TransferResult;
 import org.checkerframework.dataflow.cfg.UnderlyingAST;
+import org.checkerframework.dataflow.cfg.node.AssignmentNode;
 import org.checkerframework.dataflow.cfg.node.LocalVariableNode;
+import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.ObjectCreationNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -31,6 +36,7 @@ public class NullnessLatticeTransfer extends NullnessNoInitTransfer {
 
     @Override
     public NullnessNoInitStore initialStore(UnderlyingAST underlyingAST, List<LocalVariableNode> parameters) {
+        ((NullnessLatticeAnalysis) analysis).setPosition(underlyingAST.getCode());
         NullnessNoInitStore initStore = super.initialStore(underlyingAST, parameters);
 
         if (underlyingAST.getKind() == UnderlyingAST.Kind.METHOD) {
@@ -89,5 +95,23 @@ public class NullnessLatticeTransfer extends NullnessNoInitTransfer {
         }
 
         return initStore;
+    }
+
+    @Override
+    public TransferResult<NullnessNoInitValue, NullnessNoInitStore> visitAssignment(AssignmentNode n, TransferInput<NullnessNoInitValue, NullnessNoInitStore> in) {
+        ((NullnessLatticeAnalysis) analysis).setPosition(n.getTree());
+        return super.visitAssignment(n, in);
+    }
+
+    @Override
+    public TransferResult<NullnessNoInitValue, NullnessNoInitStore> visitMethodInvocation(MethodInvocationNode n, TransferInput<NullnessNoInitValue, NullnessNoInitStore> in) {
+        ((NullnessLatticeAnalysis) analysis).setPosition(n.getTree());
+        return super.visitMethodInvocation(n, in);
+    }
+
+    @Override
+    public TransferResult<NullnessNoInitValue, NullnessNoInitStore> visitObjectCreation(ObjectCreationNode n, TransferInput<NullnessNoInitValue, NullnessNoInitStore> p) {
+        ((NullnessLatticeAnalysis) analysis).setPosition(n.getTree());
+        return super.visitObjectCreation(n, p);
     }
 }

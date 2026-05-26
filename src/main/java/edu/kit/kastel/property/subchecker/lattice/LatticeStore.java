@@ -94,8 +94,12 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			// dependency on fields may be expressed through aliases of the field owner object.
 			// the util method takes this into account when searching for dependencies.
 			exprAnalyzer = expr -> JavaExpressionUtil.maybeDependent(expr, fieldAccess, currentTree, exclFactory);
+		} else if (dependency instanceof ThisReference) {
+			// clear all fields
+			fieldValues.clear();
+			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		} else {
-			// if it's not a field access, it's a local variable, and dependencies on local variables cannot
+			// then it's a local variable, and dependencies on local variables cannot
 			// exist through a layer of aliases.
 			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		}

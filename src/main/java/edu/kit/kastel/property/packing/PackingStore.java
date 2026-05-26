@@ -86,6 +86,13 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
         }
     }
 
+    @Override
+    protected boolean isDeclaredInitialized(FieldAccess fieldAccess) {
+        // Ignore declared Initialized type when updating field values after a method call,
+        // to ensure sound treatment of non-monotonic methods.
+        return false;
+    }
+
     /**
      * Whether a helper function, i.e., a function that may leave the receiver not @Initialized was called on {@code this}.
      *
@@ -95,8 +102,8 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
         return helperFunctionCalled;
     }
 
-    public void setHelperFunctionCalled(boolean helperFunctionCalled) {
-        this.helperFunctionCalled = helperFunctionCalled;
+    public void helperFunctionWasCalled() {
+        this.helperFunctionCalled = true;
     }
 
     public boolean isDependableFieldAssigned() {

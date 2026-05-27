@@ -14,6 +14,7 @@ In addition to refinement types, the Property Checker contains a uniqueness type
 For more documentation on the theory behind the Property Checker, see the following publications:
 
 [1] Florian Lanzinger, Alexander Weigl, Mattias Ulbrich, and Werner Dietl (2021). Scalability and Precision by Combining Expressive Type Systems and Deductive Verification. Proceedings of the ACM on programming languages, 5(OOPSLA). https://dx.doi.org/10.1145/3485520
+
 [2] Florian Lanzinger, Joshua Bachmeier, Mattias Ulbrich, and Werner Dietl (2023). Scalable and Precise Refinement Types for Imperative Languages. iFM 2023. https://dx.doi.org/10.1007/978-3-031-47705-8_20
 
 # Tests

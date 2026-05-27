@@ -8,6 +8,7 @@ import org.checkerframework.dataflow.cfg.node.*;
 import org.checkerframework.dataflow.cfg.visualize.CFGVisualizer;
 import org.checkerframework.dataflow.cfg.visualize.DOTCFGVisualizer;
 import org.checkerframework.dataflow.expression.JavaExpression;
+import org.checkerframework.framework.source.SourceChecker;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
@@ -195,6 +196,14 @@ public abstract class PackingClientAnnotatedTypeFactory<
             checkerName = checkerName.substring(0, checkerName.length() - "Subchecker".length());
         }
         return checkerName;
+    }
+
+    public PackingChecker getPackingChecker() {
+        SourceChecker result = checker.getParentChecker();
+        while (!(result instanceof PackingChecker)) {
+            result = result.getParentChecker();
+        }
+        return (PackingChecker) result;
     }
 
     public boolean isMonotonicMethod(MethodTree tree) {

@@ -94,8 +94,13 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			// dependency on fields may be expressed through aliases of the field owner object.
 			// the util method takes this into account when searching for dependencies.
 			exprAnalyzer = expr -> JavaExpressionUtil.maybeDependent(expr, fieldAccess, currentTree, exclFactory);
+		} else if (dependency instanceof ThisReference) {
+			// Clear all fields for now. Committed fields get set to their declared type by
+			// `updateCommittedFields` later.
+		    fieldValues.clear();
+			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		} else {
-			// if it's not a field access, it's a local variable, and dependencies on local variables cannot
+			// then it's a local variable, and dependencies on local variables cannot
 			// exist through a layer of aliases.
 			exprAnalyzer = expr -> expr.containsSyntacticEqualJavaExpression(dependency);
 		}
@@ -295,17 +300,19 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 		CFValue outputPackingValue = storeAfter.getValue((ThisNode) null);
 
-		if (thisValue == null) {
-			return;
-		}
-
-		TypeMirror thisType = thisValue.getUnderlyingType();
-		AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(thisType,
-				packingFactory, false);
 		if (outputPackingValue != null) {
+			TypeMirror thisType = outputPackingValue.getUnderlyingType();
+			AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(thisType, packingFactory, false);
 			outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
 			var packingAnno = outputPackingType.getAnnotationInHierarchy(packingFactory.getUnknownInitialization());
-			var frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
+
+			TypeMirror frame;
+			if (packingFactory.isInitialized(packingAnno)) {
+				frame = thisType;
+			} else {
+				frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
+			}
+
 			var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), packingFactory.getElementUtils());
 			for (var field : initializedFields) {
 				AnnotatedTypeMirror adaptedType = analysis.getTypeFactory().getAnnotatedType(field);

@@ -4,13 +4,17 @@ import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.NullnessNoInitStore;
 import org.checkerframework.checker.nullness.NullnessNoInitValue;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
 import org.checkerframework.dataflow.cfg.node.Node;
 import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.FieldAccess;
+import org.checkerframework.dataflow.expression.JavaExpression;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFValue;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
@@ -20,6 +24,7 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.Set;
+import java.util.function.BinaryOperator;
 
 public class NullnessLatticeStore extends NullnessNoInitStore {
 
@@ -29,6 +34,50 @@ public class NullnessLatticeStore extends NullnessNoInitStore {
 
     public NullnessLatticeStore(NullnessNoInitStore s) {
         super(s);
+    }
+
+    @SuppressWarnings("unchecked")
+    NullnessLatticeAnnotatedTypeFactory getFactory() {
+        return (NullnessLatticeAnnotatedTypeFactory) analysis.getTypeFactory();
+    }
+
+    @Override
+    protected void computeNewValueAndInsert(JavaExpression expr, @Nullable NullnessNoInitValue value, BinaryOperator<NullnessNoInitValue> merger, boolean permitNondeterministic) {
+        if (sequentialSemantics || !(expr instanceof FieldAccess)) {
+            super.computeNewValueAndInsert(expr, value, merger, permitNondeterministic);
+        } else {
+            // Always use sequential semantics for field accesses if the receiver is Unique
+            FieldAccess fieldAcc = (FieldAccess) expr;
+            if (isCurrentReceiverUnique() || isMonotonicUpdate(fieldAcc, value) || fieldAcc.isUnassignableByOtherCode()) {
+                NullnessNoInitValue oldValue = fieldValues.get(fieldAcc);
+                NullnessNoInitValue newValue = merger.apply(oldValue, value);
+                if (newValue != null) {
+                    fieldValues.put(fieldAcc, newValue);
+                }
+            }
+        }
+    }
+
+    protected void updateForFieldAccessAssignment(FieldAccess fieldAccess, @Nullable NullnessNoInitValue val) {
+        removeConflicting(fieldAccess, val);
+        if (!fieldAccess.containsUnknown() && val != null) {
+            // Always use sequential semantics for field accesses if the receiver is Unique
+            if (sequentialSemantics || isCurrentReceiverUnique()
+                    || isMonotonicUpdate(fieldAccess, val)
+                    || fieldAccess.isUnassignableByOtherCode()) {
+                fieldValues.put(fieldAccess, val);
+            }
+        }
+    }
+
+    protected boolean isCurrentReceiverUnique() {
+        ExclusivityAnnotatedTypeFactory exclFactory = getFactory().getPackingChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
+        ExclusivityStore exclStore = exclFactory.getStoreBefore(((NullnessLatticeAnalysis) analysis).getLocalTree());
+        if (exclStore != null) {
+            ExclusivityValue thisValue = exclStore.getValue((ThisNode) null);
+            return thisValue != null && thisValue.getAnnotations().contains(exclFactory.UNIQUE);
+        }
+        return false;
     }
 
     @Override

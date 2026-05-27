@@ -7,6 +7,7 @@ import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
 import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.lattice.SubAnnotationRelation;
+import edu.kit.kastel.property.packing.PackingChecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.packing.PackingFieldAccessTreeAnnotator;
@@ -26,6 +27,7 @@ import org.checkerframework.dataflow.expression.LocalVariable;
 import org.checkerframework.dataflow.expression.ThisReference;
 import org.checkerframework.framework.flow.CFAbstractAnalysis;
 import org.checkerframework.framework.flow.CFAbstractStore;
+import org.checkerframework.framework.source.SourceChecker;
 import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.treeannotator.ListTreeAnnotator;
 import org.checkerframework.framework.type.treeannotator.LiteralTreeAnnotator;
@@ -208,6 +210,14 @@ public class NullnessLatticeAnnotatedTypeFactory extends NullnessNoInitAnnotated
 
     public AnnotationMirror getNullable() {
         return NULLABLE;
+    }
+
+    public PackingChecker getPackingChecker() {
+        SourceChecker result = checker.getParentChecker();
+        while (!(result instanceof PackingChecker)) {
+            result = result.getParentChecker();
+        }
+        return (PackingChecker) result;
     }
 
     @Override

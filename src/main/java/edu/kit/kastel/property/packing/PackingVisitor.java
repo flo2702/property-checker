@@ -81,6 +81,12 @@ public class PackingVisitor
             Tree valueTree,
             @CompilerMessageKey String errorKey,
             Object... extraArgs) {
+        // Primitives are always initialized
+        if (varType.getKind().isPrimitive()) {
+            return;
+        }
+
+        // Try to infer a packing statement to avoid the error
         if (valueTree.toString().equals("this")
                 && canInferPackingStatement(
                         valueTree,
@@ -577,7 +583,7 @@ public class PackingVisitor
                 CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
 
                 AnnotatedTypeMirror declType = factory.getAnnotatedType(field);
-                AnnotatedTypeMirror refType = PackingAnnotatedTypeFactory.getRefinedTypeInCurrentClass(factory, store, currentClass, field);
+                AnnotatedTypeMirror refType = factory.getAnnotatedType(valueExp);
                 // MonotonicNonNull fields may be null
                 if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
                     break;
@@ -840,11 +846,7 @@ public class PackingVisitor
                         }
                     } else {
                         // Issue all the errors at the relevant constructor
-                        StringJoiner fieldsString = new StringJoiner(", ");
-                        for (VariableElement f : uninitializedFields) {
-                            fieldsString.add(f.getSimpleName());
-                        }
-                        targetChecker.reportError(tree, errorMsg, fieldsString);
+                        reportUninitializedFieldsError(tree, targetChecker, uninitializedFields);
                     }
                 }
             }

@@ -137,9 +137,9 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
 
         if (n.getTarget().getReceiver() instanceof ThisNode
                 && (n.getTarget().getMethod().getReceiverType().getAnnotation(UnderInitialization.class) != null
-                    || n.getTarget().getMethod().getReceiverType().getAnnotation(UnderInitialization.class) != null)) {
+                    || n.getTarget().getMethod().getReceiverType().getAnnotation(UnknownInitialization.class) != null)) {
             TransferResult<CFValue, PackingStore> result = super.visitMethodInvocation(n, in);
-            result.getRegularStore().setHelperFunctionCalled(true);
+            result.getRegularStore().helperFunctionWasCalled();
             return result;
         }
 
@@ -275,9 +275,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                             expr,
                             paramDefaultValue.mostSpecific(oldValue, paramDefaultValue));
                 } else {
-                    store.replaceValue(
-                            expr,
-                            paramDefaultValue);
+                    store.replaceValue(expr, paramDefaultValue);
                 }
             }
         } else {
@@ -299,7 +297,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                 JavaExpression je = stringToJavaExpr.toJavaExpression(expressionString);
 
                 if (je.toString().equals("this") && !atypeFactory.isInitialized(anno)) {
-                    store.setHelperFunctionCalled(true);
+                    store.helperFunctionWasCalled();
                 }
 
                 // Unlike the superclass implementation, this calls

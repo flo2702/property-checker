@@ -57,7 +57,7 @@ public final class ConcurrentSemanticsTest {
     public @NonNull Object aliasedLaterObj(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         this.objField = new Object();
         this.leakThis();
-        // :: error: nullness.return.type.incompatible :: error: packing.return.type.incompatible
+        // :: error: nullness.return.type.incompatible
         return objField;
     }
 
@@ -75,11 +75,6 @@ public final class ConcurrentSemanticsTest {
     }
     public @NonNull Object uniqueObj(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         this.objField = new Object();
-
-        // TODO This error is a false positive, but fixing it requires
-        //  either introducing a circular dependency between the packing and uniqueness checkers
-        //  or adding a feature to the uniqueness checker to restrict borrowings of "this" similar to the formalization
-        //  in the paper.
         // :: error: packing.return.type.incompatible
         return objField;
     }

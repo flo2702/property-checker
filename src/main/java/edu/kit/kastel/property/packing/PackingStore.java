@@ -3,12 +3,19 @@ package edu.kit.kastel.property.packing;
 import org.checkerframework.checker.initialization.InitializationAbstractStore;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.cfg.node.MethodInvocationNode;
+import org.checkerframework.dataflow.cfg.node.ThisNode;
 import org.checkerframework.dataflow.expression.*;
 import org.checkerframework.framework.flow.CFValue;
+import org.checkerframework.framework.type.AnnotatedTypeMirror;
 import org.checkerframework.framework.type.GenericAnnotatedTypeFactory;
+import org.checkerframework.javacutil.ElementUtils;
+import org.checkerframework.javacutil.TypesUtils;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.TypeMirror;
+import java.util.stream.Stream;
 
 public class PackingStore extends InitializationAbstractStore<CFValue, PackingStore> {
 
@@ -73,7 +80,10 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
     }
 
     @Override
-    public void updateForMethodCall(MethodInvocationNode methodInvocationNode, GenericAnnotatedTypeFactory<CFValue, PackingStore, ?, ?> atypeFactory, CFValue val) {
+    public void updateForMethodCall(
+            MethodInvocationNode methodInvocationNode,
+            GenericAnnotatedTypeFactory<CFValue, PackingStore, ?, ?> atypeFactory,
+            CFValue val) {
         ExecutableElement method = methodInvocationNode.getTarget().getMethod();
 
         if (((PackingFieldAccessAnnotatedTypeFactory) atypeFactory).isMonotonicMethod(method)) {
@@ -81,8 +91,58 @@ public class PackingStore extends InitializationAbstractStore<CFValue, PackingSt
             JavaExpression methodCall = JavaExpression.fromNode(methodInvocationNode);
             replaceValue(methodCall, val);
         } else {
-            // change the store normally
-            super.updateForMethodCall(methodInvocationNode, atypeFactory, val);
+            updateForNonMonotonicMethodCall(methodInvocationNode, atypeFactory, val);
+        }
+    }
+
+    private void updateForNonMonotonicMethodCall(
+            MethodInvocationNode node,
+            GenericAnnotatedTypeFactory<CFValue, PackingStore, ?, ?> atypeFactory,
+            CFValue val
+    ) {
+        super.updateForMethodCall(node, atypeFactory, val);
+
+        MethodCall invocation = (MethodCall) JavaExpression.fromNode(node);
+        ExecutableElement method = invocation.getElement();
+
+        if (atypeFactory.isSideEffectFree(method) && atypeFactory.isDeterministic(method)) {
+            // insert return value into store if method is pure and not a constructor call (like this(...) or super(...))
+            if (method.getKind() != ElementKind.CONSTRUCTOR || invocation.getReceiver() instanceof ClassName) {
+                insertValue(invocation, val);
+            }
+            return;
+        }
+
+        // If `this` was passed to the method call, we first clear all field values, then restore some field values
+        // based on the method signature.
+        boolean thisPassed = Stream.concat(Stream.of(invocation.getReceiver()), invocation.getArguments().stream())
+                .anyMatch(v -> v instanceof ThisReference);
+        if (!thisPassed) {
+            return;
+        }
+        fieldValues.clear();
+
+        PackingFieldAccessAnnotatedTypeFactory packingFactory = (PackingFieldAccessAnnotatedTypeFactory) atypeFactory;
+        CFValue outputPackingValue = getValue((ThisNode) null);
+
+        if (outputPackingValue != null) {
+            TypeMirror thisType = outputPackingValue.getUnderlyingType();
+            AnnotatedTypeMirror outputPackingType = AnnotatedTypeMirror.createType(thisType, packingFactory, false);
+            outputPackingType.addAnnotations(outputPackingValue.getAnnotations());
+            var packingAnno = outputPackingType.getAnnotationInHierarchy(packingFactory.getUnknownInitialization());
+
+            TypeMirror frame;
+            if (packingFactory.isInitialized(packingAnno)) {
+                frame = thisType;
+            } else {
+                frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
+            }
+
+            var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), packingFactory.getElementUtils());
+            for (var field : initializedFields) {
+                AnnotatedTypeMirror adaptedType = analysis.getTypeFactory().getAnnotatedType(field);
+                insertValue(new FieldAccess(new ThisReference(thisType), field), analysis.createAbstractValue(adaptedType));
+            }
         }
     }
 

@@ -20,6 +20,7 @@ import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
+import com.sun.tools.javac.tree.JCTree;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
@@ -27,7 +28,6 @@ import edu.kit.kastel.property.lattice.PropertyAnnotationType;
 import edu.kit.kastel.property.packing.PackingClientTransfer;
 import edu.kit.kastel.property.packing.PackingFieldAccessAnnotatedTypeFactory;
 import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
-import edu.kit.kastel.property.util.ClassUtils;
 import edu.kit.kastel.property.util.Packing;
 import org.checkerframework.dataflow.analysis.RegularTransferResult;
 import org.checkerframework.dataflow.analysis.TransferInput;
@@ -153,8 +153,7 @@ public final class LatticeTransfer extends PackingClientTransfer<LatticeValue, L
                 PropertyAnnotationType pat = epa.getAnnotationType();
 
                 if (pat.getSubjectType() != null) {
-                    Class<?> literalClass = ClassUtils.literalKindToClass(literal.getKind());
-                    if (literalClass != null && literalClass.equals(pat.getSubjectType())) {
+                    if (TypesUtils.areSamePrimitiveTypes(((JCTree) literal).type, pat.getSubjectType())) {
                         if (epa.checkProperty(literal.getValue())) {
                             compatible = true;
                         }

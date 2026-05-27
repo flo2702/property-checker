@@ -312,7 +312,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 			} else {
 				frame = packingFactory.getTypeFrameFromAnnotation(packingAnno);
 			}
-			
+
 			var initializedFields = ElementUtils.getAllFieldsIn(TypesUtils.getTypeElement(frame), packingFactory.getElementUtils());
 			for (var field : initializedFields) {
 				AnnotatedTypeMirror adaptedType = analysis.getTypeFactory().getAnnotatedType(field);

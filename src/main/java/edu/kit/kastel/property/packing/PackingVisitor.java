@@ -583,7 +583,7 @@ public class PackingVisitor
                 CFAbstractStore<?, ?> store = targetChecker.getTypeFactory().getStoreAfter(getCurrentPath().getLeaf());
 
                 AnnotatedTypeMirror declType = factory.getAnnotatedType(field);
-                AnnotatedTypeMirror refType = PackingAnnotatedTypeFactory.getRefinedTypeInCurrentClass(factory, store, currentClass, field);
+                AnnotatedTypeMirror refType = factory.getAnnotatedType(valueExp);
                 // MonotonicNonNull fields may be null
                 if (declType.hasAnnotation(MonotonicNonNull.class) && refType.hasAnnotation(Nullable.class)) {
                     break;

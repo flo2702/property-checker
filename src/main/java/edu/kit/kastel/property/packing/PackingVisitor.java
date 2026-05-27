@@ -846,11 +846,7 @@ public class PackingVisitor
                         }
                     } else {
                         // Issue all the errors at the relevant constructor
-                        StringJoiner fieldsString = new StringJoiner(", ");
-                        for (VariableElement f : uninitializedFields) {
-                            fieldsString.add(f.getSimpleName());
-                        }
-                        targetChecker.reportError(tree, errorMsg, fieldsString);
+                        reportUninitializedFieldsError(tree, targetChecker, uninitializedFields);
                     }
                 }
             }

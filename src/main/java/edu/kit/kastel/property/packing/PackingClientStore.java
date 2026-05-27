@@ -70,7 +70,7 @@ public abstract class PackingClientStore<V extends PackingClientValue<V>, S exte
     protected boolean isCurrentReceiverUnique() {
         ExclusivityAnnotatedTypeFactory exclFactory = getFactory().getPackingChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
         ExclusivityStore exclStore = exclFactory.getStoreBefore(((PackingClientAnalysis) analysis).getLocalTree());
-        return exclStore != null && exclStore.thisValue.getAnnotations().contains(exclFactory.UNIQUE);
+        return exclStore != null && exclStore.thisValue != null && exclStore.thisValue.getAnnotations().contains(exclFactory.UNIQUE);
     }
 
     @SuppressWarnings("unchecked")

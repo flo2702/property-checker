@@ -10,7 +10,7 @@ import org.checkerframework.checker.initialization.qual.*;
 
 public final class ConcurrentSemanticsTest {
 
-    public int intField;
+    public @Interval(min="0", max="9") int intField = 3;
     public @Nullable Object objField;
 
     @EnsuresMaybeAliased(value="this")
@@ -19,6 +19,12 @@ public final class ConcurrentSemanticsTest {
     // this is aliased; thus another thread may write the field
 
     public @Interval(min="2", max="2") int aliasedInt(@MaybeAliased @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
+        @Interval(min="2", max="2") int temp = 2;
+        this.intField = temp;
+        //// :: error: interval.return.type.incompatible
+        return intField;
+    }
+    public @Interval(min="0", max="9") int aliasedIntDecl(@MaybeAliased @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         @Interval(min="2", max="2") int temp = 2;
         this.intField = temp;
         //// :: error: interval.return.type.incompatible
@@ -40,6 +46,13 @@ public final class ConcurrentSemanticsTest {
         // :: error: interval.return.type.incompatible
         return intField;
     }
+    public @Interval(min="0", max="9") int aliasedLaterIntDecl(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
+        @Interval(min="2", max="2") int temp = 2;
+        this.intField = temp;
+        this.leakThis();
+        // :: error: interval.return.type.incompatible
+        return intField;
+    }
     @EnsuresMaybeAliased(value="this")
     public @NonNull Object aliasedLaterObj(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         this.objField = new Object();
@@ -55,10 +68,15 @@ public final class ConcurrentSemanticsTest {
         this.intField = temp;
         return intField;
     }
+    public @Interval(min="0", max="9") int uniqueIntDecl(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
+        @Interval(min="2", max="2") int temp = 2;
+        this.intField = temp;
+        return intField;
+    }
     public @NonNull Object uniqueObj(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         this.objField = new Object();
 
-        // TODO This error is a false positive, but fixing requires
+        // TODO This error is a false positive, but fixing it requires
         //  either introducing a circular dependency between the packing and uniqueness checkers
         //  or adding a feature to the uniqueness checker to restrict borrowings of "this" similar to the formalization
         //  in the paper.

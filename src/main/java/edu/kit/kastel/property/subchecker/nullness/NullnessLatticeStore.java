@@ -5,6 +5,7 @@ import edu.kit.kastel.property.packing.PackingFieldAccessSubchecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityAnnotatedTypeFactory;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityChecker;
 import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityStore;
+import edu.kit.kastel.property.subchecker.exclusivity.ExclusivityValue;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.NullnessNoInitStore;
 import org.checkerframework.checker.nullness.NullnessNoInitValue;
@@ -72,7 +73,11 @@ public class NullnessLatticeStore extends NullnessNoInitStore {
     protected boolean isCurrentReceiverUnique() {
         ExclusivityAnnotatedTypeFactory exclFactory = getFactory().getPackingChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
         ExclusivityStore exclStore = exclFactory.getStoreBefore(((NullnessLatticeAnalysis) analysis).getLocalTree());
-        return exclStore != null && exclStore.getValue((ThisNode) null).getAnnotations().contains(exclFactory.UNIQUE);
+        if (exclStore != null) {
+            ExclusivityValue thisValue = exclStore.getValue((ThisNode) null);
+            return thisValue != null && thisValue.getAnnotations().contains(exclFactory.UNIQUE);
+        }
+        return false;
     }
 
     @Override

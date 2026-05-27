@@ -275,9 +275,7 @@ public class PackingTransfer extends InitializationAbstractTransfer<CFValue, Pac
                             expr,
                             paramDefaultValue.mostSpecific(oldValue, paramDefaultValue));
                 } else {
-                    store.replaceValue(
-                            expr,
-                            paramDefaultValue);
+                    store.replaceValue(expr, paramDefaultValue);
                 }
             }
         } else {

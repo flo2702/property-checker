@@ -18,7 +18,7 @@ import edu.kit.kastel.property.subchecker.exclusivity.qual.*;
  *     IPair<CONTENT,CONTENT>}
  * @param <CHILD> the type of the children; it is is ignored if there are no children
  */
-public abstract class Node<@MaybeAliased CONTENT extends @Nullable Object, @MaybeAliased CHILD extends @NonNullNode Object> {
+public abstract class Node<@MaybeAliased CONTENT extends @Nullable @NullableNode Object, @MaybeAliased CHILD extends @NonNullNode Object> {
 
   /** The children of this node. */
   private List<CHILD> children = new ArrayList<>();
@@ -29,6 +29,7 @@ public abstract class Node<@MaybeAliased CONTENT extends @Nullable Object, @Mayb
   @Pure
   // :: error: nullnessnode.inconsistent.constructor.type :: error: nullnessnode.contracts.postcondition.not.satisfied
   protected @NonNullNode Node(@NonNullIfNull("right") CONTENT left, @NonNullIfNull("left") CONTENT right) {
+    // :: error: nullnessnode.assignment.type.incompatible
     this.userObject = IPair.of(left, right);
   }
 

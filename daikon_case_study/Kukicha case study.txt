@@ -1,4 +1,11 @@
-Non-null node property
+
+Non-null node
+tests/daikon/daikon/diff/IPair.java
+tests/daikon/daikon/diff/Node.java
+tests/daikon/daikon/diff/InvNode.java
+tests/daikon/daikon/diff/PptNode.java
+
+Non-null node uses
 tests/daikon/daikon/diff/UnionVisitor.java:    @SuppressWarnings(
 tests/daikon/daikon/diff/UnionVisitor.java:  @SuppressWarnings(
 tests/daikon/daikon/diff/UnionVisitor.java:      assert inv2 != null : "@AssumeAssertion(nullness): at least one of inv1 and inv2 is non-null";

@@ -7,7 +7,7 @@ For example, a non-null qualifier can be defined by the following line:
 
 An object `o` has the type `@NonNull Object` if the specified property `o != null` always evaluates to `true`.
 
-If the Property Checker can't completely prove a program's well-typedness, it translates all type qualifiers into specification clauses in some other specification language. Currently available languages are the Java Modeling Language (JML) or Verifast. This translation can be given to a deductive verification tool like KeY or Verifast to prove those parts of the program which the checker couldn't prove. This approach combines the scalability and ease-of-use of pluggable type system with the power of deductive verification.
+If the Property Checker can't completely prove a program's well-typedness, it translates all type qualifiers into specification clauses in some other specification language. Currently available languages are the Java Modeling Language (JML) or Verifast. This translation can be given to a deductive verification tool like KeY or Verifast to prove those parts of the program which the checker couldn't prove. This approach combines the scalability and ease-of-use of pluggable type systems with the power of deductive verification.
 
 In addition to refinement types, the Property Checker contains a uniqueness type system and a packing type system (a generalization of the CF's initialization type system where initialized variables can be uninitialized and reinitialized), allowing for sound support of dependent types that depend on mutable program variables.
 

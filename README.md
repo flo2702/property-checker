@@ -50,6 +50,7 @@ To run the checker, use the following command. Arguments in [square brackets] ar
 [-APropertyChecker_keepGenerics=<keep_generics>]
 [-APropertyChecker_noExclusivity=<no_exclusivity>]
 [-APropertyChecker_noInferUnpack=<no_infer_unpack>]
+[-AconcurrentSemantics=<concurrent_semantics>]
 [<nullness checker options>]
 ```
 
@@ -68,4 +69,5 @@ where
 * `<keep_generics>` is `true` if you want the Property Checker to keep generic types in the translation and `false` if you want generics to be erased. The default is `false`.
 * `<no_exclusivity>` is `true` if you want to suppress checking of uniqueness types. The default is `false`.
 * `<no_infer_unpack>` is `true` if you want the Property Checker to never automatically infer pack/unpack statements for the packing type system. The default is `false`.
+* `<concurrent_semantics>` is `true` if you wnat to disable type refinements that are unsound in concurrent programs. See https://eisop.github.io/cf/manual/manual.html#faq-concurrency
 * `<nullness checker options>` The Property Checker includes a custom version of the CF's Nullness Checker and supports most of its options. See https://eisop.github.io/cf/manual/manual.html#nullness-checker

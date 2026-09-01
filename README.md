@@ -46,6 +46,7 @@ To run the checker, use the following command. Arguments in [square brackets] ar
 -APropertyChecker_qualPkg=<qual_pkg> \
 [-APropertyChecker_outputLang=<output_lang>]
 [-APropertyChecker_translationOnly=<translation_only>]
+[-APropertyChecker_noSmt=<no_smt>]
 [-APropertyChecker_shouldNotUseTrampoline=<should_not_use_trampoline>]
 [-APropertyChecker_keepGenerics=<keep_generics>]
 [-APropertyChecker_noExclusivity=<no_exclusivity>]
@@ -65,6 +66,7 @@ where
 * `<qual_pkg>` is the fully qualified name of the package containing all annotations.
 * `<output_lang>` is `jml` or `verifast` depending on what language you want for the translation. The default is `jml`.
 * `<translation_only>` is `true` if you want to only run the JML/Verifast translator without running the Property Checker beforehand. The default is `false`.
+* `<no_smt>` is `true` if you want to deactivate the SMT-solver integration. The default is `false`.
 * `<should_not_use_trampoline>` is a comma-separated list of package-name prefixes. By default, the translation replaces method calls to `foo()` with calls to a generated method `foo_trampoline()`, which allows for a more precise translation. To suppress this replacement for methods in specific packages, add the package name or a prefix of the package name to this list.
 * `<keep_generics>` is `true` if you want the Property Checker to keep generic types in the translation and `false` if you want generics to be erased. The default is `false`.
 * `<no_exclusivity>` is `true` if you want to suppress checking of uniqueness types. The default is `false`.

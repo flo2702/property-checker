@@ -24,6 +24,7 @@ import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCMethodDecl;
 import edu.kit.kastel.property.checker.PropertyChecker;
+import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.lattice.EvaluatedPropertyAnnotation;
 import edu.kit.kastel.property.lattice.Lattice;
 import edu.kit.kastel.property.lattice.PropertyAnnotation;
@@ -543,6 +544,10 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
             boolean typeCheckSuccess,
             TreePath path
     ) {
+        if (checker.getParentChecker().getBooleanOption(Config.NO_SMT_OPTION, false)) {
+            return;
+        }
+
         var property = atypeFactory.getLattice().getPropertyAnnotation(goalType);
 
         JavaExpression toProve = viewpointAdapt(

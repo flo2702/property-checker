@@ -38,6 +38,7 @@ public final class Config {
 
     public static final String TRANSLATION_ONLY_OPTION = "translationOnly";
     public static final String NO_EXCLUSITIVY_OPTION = "noExclusivity";
+    public static final String NO_SMT_OPTION = "noSmt";
     public static final String NO_INFER_UNPACK_OPTION = "noInferUnpack";
     public static final String KEEP_GENERICS_OPTION = "keepGenerics";
 

@@ -57,7 +57,7 @@ public final class ConcurrentSemanticsTest {
     public @NonNull Object aliasedLaterObj(@Unique @UnknownInitialization(Object.class) ConcurrentSemanticsTest this) {
         this.objField = new Object();
         this.leakThis();
-        // :: error: nullness.return.type.incompatible
+        // :: error: nullness.return.type.incompatible :: error: packing.return.type.incompatible
         return objField;
     }
 

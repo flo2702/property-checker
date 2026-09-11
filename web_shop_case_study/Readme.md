@@ -5,7 +5,7 @@
 1. Navigate to the `property-checker` directory.
 2. Run `./gradlew clean test --tests CaseStudyMutableTest`. The JML translation will be written to `../property-checker-out`. If there is a problem, find the expected translation in `web_shop_case_study/src_key_enh` and copy it there.
 3. Run `cd web_shop_case_study && ./runKey.sh`.
-4. Load the finished proofs from the directories `web_shop_case_study/Proofs list` and `web_shop_case_study/Proofs order`.
+4. Load the finished proofs from the directories `web_shop_case_study/Proofs client`, `web_shop_case_study/Proofs list` and `web_shop_case_study/Proofs order`.
 5. The proofs' run times and number of manual steps are shown upon loading. Alternatively, they can be found by opening the proof files in a text editor.
 
 

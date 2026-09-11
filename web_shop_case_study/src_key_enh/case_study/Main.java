@@ -139,8 +139,8 @@ public final class Main  {
       @*/
     public static void addOrderHelper(/*@nullable@*/ case_study.Shop shop, int witness, /*@nullable@*/ case_study.Customer customer, /*@nullable@*/ case_study.Product product) {
         shop.__addOrder_trampoline(Order.__INIT_trampoline(witness,customer,product, true, true, false, false), true, true);
-        ;
-        ;
+        //@ assume customer == \old(customer) ==> customer.age == \old(customer.age);
+        //@ assume product == \old(product) ==> product.ageRestriction == \old(product.ageRestriction);
     }
 
     /*@ public normal_behavior

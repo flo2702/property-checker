@@ -63,7 +63,7 @@ public final class Main {
     public static void addOrderHelper(@Unique Shop shop, int witness, @AgedOver(age="witness") Customer customer, @AllowedFor(age="witness") Product product) {
         // :: error: agedover.argument.type.incompatible :: error: allowedfor.argument.type.incompatible
         shop.addOrder(new Order(witness, customer, product));
-        Assert.immutableFieldUnchanged_TranslationOnly("customer", "customer.age");
-        Assert.immutableFieldUnchanged_TranslationOnly("product", "product.ageRestriction");
+        Assert.immutableFieldUnchanged("customer", "customer.age");
+        Assert.immutableFieldUnchanged("product", "product.ageRestriction");
     }
 }

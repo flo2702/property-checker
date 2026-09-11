@@ -82,7 +82,10 @@ public final class PropertyVisitor extends PackingVisitor {
 
         try (BufferedWriter out = new BufferedWriter(new FileWriter(file))) {
             List<LatticeVisitor.Result> results = checker.getResults(checker.getAbsoluteSourceFileName());
-            mendTypeErrors(results);
+
+            if (!checker.getBooleanOption(Config.NO_SMT_OPTION, false)) {
+                mendTypeErrors(results);
+            }
 
             // TODO: fix reporting here (results is never empty, even if there are no proof obligations left)
             if (results.isEmpty()) {

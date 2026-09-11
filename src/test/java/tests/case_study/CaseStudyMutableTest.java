@@ -35,7 +35,9 @@ public class CaseStudyMutableTest extends PropertyCheckerTest {
                         + ",tests/case_study/_case_study_mutable/lattice_sorted"
                         + ",tests/case_study/_case_study_mutable/lattice_inv",
                 "tests/case_study/_case_study_mutable/",
-                "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual");
+                "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",
+                // no SMT solver for paper evaluation, to not distract from paper's main findings
+                "-APropertyChecker_noSmt=true");
     }
 
     @Parameters

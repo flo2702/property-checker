@@ -23,23 +23,21 @@ import java.io.File;
 import java.util.List;
 
 @SuppressWarnings("nls")
-public class CaseStudyMutableVerifastTest extends PropertyCheckerTest {
-    public CaseStudyMutableVerifastTest(List<File> testFiles) {
+public class CaseStudyMutableTestSmt extends PropertyCheckerTest {
+    public CaseStudyMutableTestSmt(List<File> testFiles) {
         super(
                 testFiles,
                         "tests/case_study/_case_study_mutable/lattice_agedover"
                 		+ ",tests/case_study/_case_study_mutable/lattice_allowedfor"
-                        + ",tests/case_study/_case_study_mutable/lattice_interval"
                         + ",tests/case_study/_case_study_mutable/lattice_empty"
+                        + ",tests/case_study/_case_study_mutable/lattice_interval"
                         + ",tests/case_study/_case_study_mutable/lattice_sign"
                         + ",tests/case_study/_case_study_mutable/lattice_sorted"
-                        + ",tests/case_study/_case_study_mutable/lattice_inv"
-                ,
+                        + ",tests/case_study/_case_study_mutable/lattice_inv",
                 "tests/case_study/_case_study_mutable/",
                 "edu.kit.kastel.property.subchecker.lattice.case_study_mutable_qual",
-                // no SMT solver for paper evaluation, to not distract from paper's main findings
-                "-APropertyChecker_noSmt=true",
-                "-APropertyChecker_outputLang=verifast");
+                // version with SMT solver
+                "-APropertyChecker_noSmt=false");
     }
 
     @Parameters

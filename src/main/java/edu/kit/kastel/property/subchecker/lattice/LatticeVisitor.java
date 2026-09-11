@@ -496,7 +496,9 @@ public final class LatticeVisitor extends PackingClientVisitor<LatticeAnnotatedT
     private SmtExpression computePostconditionSmt(
             Tree treeKey, AnnotationMirror annotation,
             JavaExpression subject, LatticeStore exitStore) {
-
+        if (checker.getParentChecker().getBooleanOption(Config.NO_SMT_OPTION, false)) {
+            return null;
+        }
 
         var property = atypeFactory.getLattice().getPropertyAnnotation(annotation);
         var goal = convertGoal(

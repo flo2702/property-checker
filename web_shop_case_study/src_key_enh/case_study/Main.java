@@ -131,14 +131,14 @@ public final class Main  {
       @ requires_free customer.packed == \typeof(customer);
       @ requires_free product.packed == \typeof(product);
       @ requires_free shop != customer && shop != product;
+      @ ensures (witness >= 0) && (customer != null && customer.age >= witness);
+      @ ensures (witness >= 0) && (product != null && product.ageRestriction <= witness);
       @ ensures_free shop.packed == \typeof(shop);
       @ ensures_free customer.packed == \typeof(customer);
       @ ensures_free product.packed == \typeof(product);
-      @ ensures_free (witness >= 0) && (customer != null && customer.age >= witness);
-      @ ensures_free (witness >= 0) && (product != null && product.ageRestriction <= witness);
       @*/
     public static void addOrderHelper(/*@nullable@*/ case_study.Shop shop, int witness, /*@nullable@*/ case_study.Customer customer, /*@nullable@*/ case_study.Product product) {
-        shop.__addOrder_trampoline(Order.__INIT_trampoline(witness,customer,product, true, true, true, true), true, true);
+        shop.__addOrder_trampoline(Order.__INIT_trampoline(witness,customer,product, true, true, false, false), true, true);
         ;
         ;
     }

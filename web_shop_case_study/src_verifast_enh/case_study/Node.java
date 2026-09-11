@@ -13,19 +13,21 @@ public final class Node  {
     
     public Node(Order head, Node tail)
         //@ requires head != null &*& tail != null &*& (Order_OwnFields(head, ?head_witness_r, ?head_customer_r, ?head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r)) &*& (Node_OwnFields(tail, ?tail_head_r, ?tail_tail_r) &*& Node_FieldTypes(tail_head_r, tail_tail_r) &*& Sorted(tail_head_r, tail_tail_r)) &*& Sorted(head, tail);
-        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& head != null &*& tail != null &*& true &*& true &*& this_tail_e == tail &*& this_head_e == head;
+        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& (head != null) &*& (tail != null) &*& this_tail_e == tail &*& this_head_e == head;
     {
         super();
 
         this.head = head;
         this.tail = tail;
         ;
+        ;
+        ;
     }
 
     
     public Node(Order head)
         //@ requires head != null &*& (Order_OwnFields(head, ?head_witness_r, ?head_customer_r, ?head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r));
-        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& head != null &*& true &*& this_tail_e == null &*& this_head_e == head;
+        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& (head != null) &*& this_tail_e == null &*& this_head_e == head;
     {
         super();
 
@@ -37,7 +39,7 @@ public final class Node  {
     
     public void insert(Order newHead)
         //@ requires this.head |-> ?this_head_r &*& this.tail |-> ?this_tail_r &*& this_head_r != null &*& (Order_OwnFields(this_head_r, ?this_head_witness_r, ?this_head_customer_r, ?this_head_product_r) &*& Order_FieldTypes(this_head_witness_r, this_head_customer_r, this_head_product_r)) &*& (this_tail_r != null ? (Node_OwnFields(this_tail_r, ?this_tail_head_r, ?this_tail_tail_r) &*& Node_FieldTypes(this_tail_head_r, this_tail_tail_r) &*& Sorted(this_tail_head_r, this_tail_tail_r)) : true) &*& this != null &*& Sorted(this_head_r, this_tail_r) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r) &*& Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r));
-        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e))) &*& (this_head_e == this_head_r || this_head_e == newHead);
+        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& newHead != null) &*& (this_head_e == this_head_r || this_head_e == newHead);
     {
         //@ open [0.5]Order_OwnFields(this_head_r, _, _, ?oldHead_product);
         //@ open [0.5]Product_OwnFields(oldHead_product, _, ?oldPrice, _);
@@ -59,7 +61,7 @@ public final class Node  {
     
     private void insertHead(Order newHead)
         //@ requires this.head |-> ?this_head_r &*& this.tail |-> ?this_tail_r &*& this_head_r != null &*& (Order_OwnFields(this_head_r, ?this_head_witness_r, ?this_head_customer_r, ?this_head_product_r) &*& Order_FieldTypes(this_head_witness_r, this_head_customer_r, this_head_product_r)) &*& (this_tail_r != null ? (Node_OwnFields(this_tail_r, ?this_tail_head_r, ?this_tail_tail_r) &*& Node_FieldTypes(this_tail_head_r, this_tail_tail_r) &*& Sorted(this_tail_head_r, this_tail_tail_r)) : true) &*& this != null &*& Sorted(this_head_r, this_tail_r) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r) &*& Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r)) &*& SortedOrders(newHead, this_head_r);
-        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e))) &*& this_head_e == newHead;
+        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& newHead != null) &*& this_head_e == newHead;
     {
         if (this.tail == null) {
             this.tail = Node.__INIT_restorePermissions(this.head);
@@ -75,7 +77,7 @@ public final class Node  {
     
     private void insertTail(Order newHead)
         //@ requires this.head |-> ?this_head_r &*& this.tail |-> ?this_tail_r &*& this_head_r != null &*& (Order_OwnFields(this_head_r, ?this_head_witness_r, ?this_head_customer_r, ?this_head_product_r) &*& Order_FieldTypes(this_head_witness_r, this_head_customer_r, this_head_product_r)) &*& (this_tail_r != null ? (Node_OwnFields(this_tail_r, ?this_tail_head_r, ?this_tail_tail_r) &*& Node_FieldTypes(this_tail_head_r, this_tail_tail_r) &*& Sorted(this_tail_head_r, this_tail_tail_r)) : true) &*& this != null &*& Sorted(this_head_r, this_tail_r) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r) &*& Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r)) &*& SortedOrders(this_head_r, newHead);
-        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e))) &*& this_head_e == this_head_r;
+        //@ ensures [_]Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& [_]Node_FieldTypes(this_head_e, this_tail_e) &*& [_]Sorted(this_head_e, this_tail_e) &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& newHead != null) &*& this_head_e == this_head_r;
     {
         if (tail == null) {
             this.tail = Node.__INIT_restorePermissions(newHead);
@@ -120,27 +122,27 @@ public final class Node  {
 
     public static Node __INIT_restorePermissions(Order head, Node tail)
         //@ requires head != null &*& tail != null &*& ([_](Order_OwnFields(head, ?head_witness_r, ?head_customer_r, ?head_product_r)) &*& [_](Order_FieldTypes(head_witness_r, head_customer_r, head_product_r))) &*& ([_](Node_OwnFields(tail, ?tail_head_r, ?tail_tail_r)) &*& [_](Node_FieldTypes(tail_head_r, tail_tail_r)) &*& [_](Sorted(tail_head_r, tail_tail_r))) &*& Sorted(head, tail);
-        //@ ensures result != null &*& Node_OwnFields(result, ?result_head_e, ?result_tail_e) &*& Node_FieldTypes(result_head_e, result_tail_e) &*& result != null &*& Sorted(result_head_e, result_tail_e) &*& head != null &*& tail != null &*& Sorted(tail_head_r, tail_tail_r) &*& (Order_OwnFields(head, head_witness_r, head_customer_r, head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r)) &*& (Node_OwnFields(tail, tail_head_r, tail_tail_r) &*& Node_FieldTypes(tail_head_r, tail_tail_r)) &*& result_tail_e == tail &*& result_head_e == head;
+        //@ ensures result != null &*& Node_OwnFields(result, ?result_head_e, ?result_tail_e) &*& Node_FieldTypes(result_head_e, result_tail_e) &*& result != null &*& Sorted(result_head_e, result_tail_e) &*& (Order_OwnFields(head, head_witness_r, head_customer_r, head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r) &*& head != null) &*& (Node_OwnFields(tail, tail_head_r, tail_tail_r) &*& Node_FieldTypes(tail_head_r, tail_tail_r) &*& tail != null &*& Sorted(tail_head_r, tail_tail_r)) &*& result_tail_e == tail &*& result_head_e == head;
     {}
 
     public static Node __INIT_restorePermissions(Order head)
         //@ requires head != null &*& ([_](Order_OwnFields(head, ?head_witness_r, ?head_customer_r, ?head_product_r)) &*& [_](Order_FieldTypes(head_witness_r, head_customer_r, head_product_r)));
-        //@ ensures result != null &*& Node_OwnFields(result, ?result_head_e, ?result_tail_e) &*& Node_FieldTypes(result_head_e, result_tail_e) &*& result != null &*& Sorted(result_head_e, result_tail_e) &*& head != null &*& (Order_OwnFields(head, head_witness_r, head_customer_r, head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r)) &*& result_tail_e == null &*& result_head_e == head;
+        //@ ensures result != null &*& Node_OwnFields(result, ?result_head_e, ?result_tail_e) &*& Node_FieldTypes(result_head_e, result_tail_e) &*& result != null &*& Sorted(result_head_e, result_tail_e) &*& (Order_OwnFields(head, head_witness_r, head_customer_r, head_product_r) &*& Order_FieldTypes(head_witness_r, head_customer_r, head_product_r) &*& head != null) &*& result_tail_e == null &*& result_head_e == head;
     {}
 
     public void __insert_restorePermissions(Order newHead)
         //@ requires [_]Node_OwnFields(this, ?this_head_r, ?this_tail_r) &*& [_]Node_FieldTypes(this_head_r, this_tail_r) &*& this != null &*& [_]Sorted(this_head_r, this_tail_r) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r)) &*& [_](Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r)));
-        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& this != null &*& Sorted(this_head_e, this_tail_e) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& (this_head_e == this_head_r || this_head_e == newHead);
+        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& Sorted(this_head_e, this_tail_e) &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e) &*& newHead != null) &*& (this_head_e == this_head_r || this_head_e == newHead);
     {}
 
     private void __insertHead_restorePermissions(Order newHead)
         //@ requires [_]Node_OwnFields(this, ?this_head_r, ?this_tail_r) &*& [_]Node_FieldTypes(this_head_r, this_tail_r) &*& this != null &*& [_]Sorted(this_head_r, this_tail_r) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r)) &*& [_](Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r))) &*& SortedOrders(newHead, this_head_r);
-        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& this != null &*& Sorted(this_head_e, this_tail_e) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& this_head_e == newHead;
+        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& Sorted(this_head_e, this_tail_e) &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e) &*& newHead != null) &*& this_head_e == newHead;
     {}
 
     private void __insertTail_restorePermissions(Order newHead)
         //@ requires [_]Node_OwnFields(this, ?this_head_r, ?this_tail_r) &*& [_]Node_FieldTypes(this_head_r, this_tail_r) &*& this != null &*& [_]Sorted(this_head_r, this_tail_r) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r)) &*& [_](Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r))) &*& SortedOrders(this_head_r, newHead);
-        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& this != null &*& Sorted(this_head_e, this_tail_e) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& this_head_e == this_head_r;
+        //@ ensures Node_OwnFields(this, ?this_head_e, ?this_tail_e) &*& Node_FieldTypes(this_head_e, this_tail_e) &*& Sorted(this_head_e, this_tail_e) &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e) &*& newHead != null) &*& this_head_e == this_head_r;
     {}
 
     public Order __getHead_restorePermissions()

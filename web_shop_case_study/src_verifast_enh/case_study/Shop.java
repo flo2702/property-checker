@@ -21,7 +21,7 @@ public final class Shop  {
     
     public void addOrder(Order order)
         //@ requires this.orders |-> ?this_orders_r &*& this_orders_r != null &*& PossiblyEmpty(this_orders_r) &*& (SortedList_OwnFields(this_orders_r, ?this_orders_first_r) &*& SortedList_FieldTypes(this_orders_first_r)) &*& this != null &*& order != null &*& (Order_OwnFields(order, ?order_witness_r, ?order_customer_r, ?order_product_r) &*& Order_FieldTypes(order_witness_r, order_customer_r, order_product_r));
-        //@ ensures [_]Shop_OwnFields(this, ?this_orders_e) &*& [_]Shop_FieldTypes(this_orders_e) &*& order != null &*& ([_](Order_OwnFields(order, ?order_witness_e, ?order_customer_e, ?order_product_e)) &*& [_](Order_FieldTypes(order_witness_e, order_customer_e, order_product_e)));
+        //@ ensures [_]Shop_OwnFields(this, ?this_orders_e) &*& [_]Shop_FieldTypes(this_orders_e) &*& ([_](Order_OwnFields(order, ?order_witness_e, ?order_customer_e, ?order_product_e)) &*& [_](Order_FieldTypes(order_witness_e, order_customer_e, order_product_e)) &*& order != null);
     {
         this.orders.__insert_restorePermissions(order);
     }
@@ -48,11 +48,11 @@ public final class Shop  {
 
     public void __addOrder_restorePermissions(Order order)
         //@ requires [_]Shop_OwnFields(this, ?this_orders_r) &*& [_]Shop_FieldTypes(this_orders_r) &*& this != null &*& order != null &*& ([_](Order_OwnFields(order, ?order_witness_r, ?order_customer_r, ?order_product_r)) &*& [_](Order_FieldTypes(order_witness_r, order_customer_r, order_product_r)));
-        //@ ensures Shop_OwnFields(this, ?this_orders_e) &*& Shop_FieldTypes(this_orders_e) &*& this != null &*& order != null &*& (Order_OwnFields(order, ?order_witness_e, ?order_customer_e, ?order_product_e) &*& Order_FieldTypes(order_witness_e, order_customer_e, order_product_e));
+        //@ ensures Shop_OwnFields(this, ?this_orders_e) &*& Shop_FieldTypes(this_orders_e) &*& (Order_OwnFields(order, ?order_witness_e, ?order_customer_e, ?order_product_e) &*& Order_FieldTypes(order_witness_e, order_customer_e, order_product_e) &*& order != null);
     {}
 
     public boolean __processNextOrder_restorePermissions()
         //@ requires [_]Shop_OwnFields(this, ?this_orders_r) &*& [_]Shop_FieldTypes(this_orders_r) &*& this != null;
-        //@ ensures Shop_OwnFields(this, ?this_orders_e) &*& Shop_FieldTypes(this_orders_e) &*& this != null &*& true;
+        //@ ensures Shop_OwnFields(this, ?this_orders_e) &*& Shop_FieldTypes(this_orders_e) &*& true;
     {}
 }

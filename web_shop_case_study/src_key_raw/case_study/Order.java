@@ -27,12 +27,12 @@ public final class Order  {
       @ requires_free this.packed == \typeof(this);
       @ requires_free customer.packed == \typeof(customer);
       @ requires_free product.packed == \typeof(product);
+      @ ensures (witness >= 0) && (customer != null && customer.age >= witness);
+      @ ensures (witness >= 0) && (product != null && product.ageRestriction <= witness);
       @ ensures this.customer == customer && this.product == product && this.witness == witness;
       @ ensures_free customer.packed == \typeof(customer);
       @ ensures_free product.packed == \typeof(product);
       @ ensures (true) && (this != null);
-      @ ensures (witness >= 0) && (customer != null && customer.age >= witness);
-      @ ensures (witness >= 0) && (product != null && product.ageRestriction <= witness);
       @ assignable \nothing;
       @ assignable \nothing;
       @*/

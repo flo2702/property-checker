@@ -22,7 +22,7 @@ public final class SortedList  {
     
     public void insert(Order newHead)
         //@ requires this.first |-> ?this_first_r &*& (this_first_r != null ? (Node_OwnFields(this_first_r, ?this_first_head_r, ?this_first_tail_r) &*& Node_FieldTypes(this_first_head_r, this_first_tail_r) &*& Sorted(this_first_head_r, this_first_tail_r)) : true) &*& this != null &*& PossiblyEmpty(this) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r) &*& Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r));
-        //@ ensures [_]SortedList_OwnFields(this, ?this_first_e) &*& [_]SortedList_FieldTypes(this_first_e) &*& [_]NonEmpty(this_first_e) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)));
+        //@ ensures [_]SortedList_OwnFields(this, ?this_first_e) &*& [_]SortedList_FieldTypes(this_first_e) &*& [_]NonEmpty(this_first_e) &*& ([_](Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e)) &*& [_](Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e)) &*& newHead != null);
     {
         if (this.first == null) {
             this.first = Node.__INIT_restorePermissions(newHead);
@@ -78,17 +78,17 @@ public final class SortedList  {
 
     public void __insert_restorePermissions(Order newHead)
         //@ requires [_]SortedList_OwnFields(this, ?this_first_r) &*& [_]SortedList_FieldTypes(this_first_r) &*& this != null &*& [_]PossiblyEmpty(this) &*& newHead != null &*& ([_](Order_OwnFields(newHead, ?newHead_witness_r, ?newHead_customer_r, ?newHead_product_r)) &*& [_](Order_FieldTypes(newHead_witness_r, newHead_customer_r, newHead_product_r)));
-        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& this != null &*& NonEmpty(this_first_e) &*& newHead != null &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e));
+        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& NonEmpty(this_first_e) &*& (Order_OwnFields(newHead, ?newHead_witness_e, ?newHead_customer_e, ?newHead_product_e) &*& Order_FieldTypes(newHead_witness_e, newHead_customer_e, newHead_product_e) &*& newHead != null);
     {}
 
     public Order __remove_restorePermissions()
         //@ requires [_]SortedList_OwnFields(this, ?this_first_r) &*& [_]SortedList_FieldTypes(this_first_r) &*& this != null &*& [_]NonEmpty(this_first_r);
-        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& this != null &*& PossiblyEmpty(this) &*& (Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e) &*& result != null) &*& [_](this_first_r.head |-> result);
+        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& (Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e) &*& result != null) &*& [_](this_first_r.head |-> result);
     {}
 
     public Order __removeIfPresent_restorePermissions()
         //@ requires [_]SortedList_OwnFields(this, ?this_first_r) &*& [_]SortedList_FieldTypes(this_first_r) &*& this != null &*& [_]PossiblyEmpty(this);
-        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& this != null &*& (result != null ? (Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e)) : true) &*& this_first_r == null ? result == null : [_](this_first_r.head |-> result);
+        //@ ensures SortedList_OwnFields(this, ?this_first_e) &*& SortedList_FieldTypes(this_first_e) &*& (result != null ? (Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e)) : true) &*& this_first_r == null ? result == null : [_](this_first_r.head |-> result);
     {}
 
     public Order __getHead_restorePermissions()

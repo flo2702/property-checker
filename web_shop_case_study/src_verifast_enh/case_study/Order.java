@@ -15,13 +15,17 @@ public final class Order  {
     
     public Order(int witness, Customer customer, Product product)
         //@ requires customer != null &*& product != null &*& (Customer_OwnFields(customer, ?customer_name_r, ?customer_age_r) &*& Customer_FieldTypes(customer_name_r, customer_age_r) &*& AgedOver(customer_age_r, witness)) &*& (Product_OwnFields(product, ?product_title_r, ?product_price_r, ?product_ageRestriction_r) &*& Product_FieldTypes(product_title_r, product_price_r, product_ageRestriction_r) &*& AllowedFor(product_ageRestriction_r, witness)) &*& true;
-        //@ ensures [_]Order_OwnFields(this, ?this_witness_e, ?this_customer_e, ?this_product_e) &*& [_]Order_FieldTypes(this_witness_e, this_customer_e, this_product_e) &*& customer != null &*& product != null &*& true &*& true &*& true &*& this_customer_e == customer &*& this_product_e == product &*& this_witness_e == witness;
+        //@ ensures [_]Order_OwnFields(this, ?this_witness_e, ?this_customer_e, ?this_product_e) &*& [_]Order_FieldTypes(this_witness_e, this_customer_e, this_product_e) &*& (customer != null &*& [_](AgedOver(customer_age_r, witness))) &*& (product != null &*& [_](AllowedFor(product_ageRestriction_r, witness))) &*& true &*& this_customer_e == customer &*& this_product_e == product &*& this_witness_e == witness;
     {
         super();
 
         this.witness = witness;
         this.customer = customer;
         this.product = product;
+        ;
+        ;
+        ;
+        ;
     }
 
     
@@ -38,7 +42,7 @@ public final class Order  {
 
     public static Order __INIT_restorePermissions(int witness, Customer customer, Product product)
         //@ requires customer != null &*& product != null &*& ([_](Customer_OwnFields(customer, ?customer_name_r, ?customer_age_r)) &*& [_](Customer_FieldTypes(customer_name_r, customer_age_r)) &*& [_](AgedOver(customer_age_r, witness))) &*& ([_](Product_OwnFields(product, ?product_title_r, ?product_price_r, ?product_ageRestriction_r)) &*& [_](Product_FieldTypes(product_title_r, product_price_r, product_ageRestriction_r)) &*& [_](AllowedFor(product_ageRestriction_r, witness))) &*& true;
-        //@ ensures result != null &*& Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e) &*& result != null &*& customer != null &*& AgedOver(customer_age_r, witness) &*& product != null &*& AllowedFor(product_ageRestriction_r, witness) &*& (Customer_OwnFields(customer, customer_name_r, customer_age_r) &*& Customer_FieldTypes(customer_name_r, customer_age_r)) &*& (Product_OwnFields(product, product_title_r, product_price_r, product_ageRestriction_r) &*& Product_FieldTypes(product_title_r, product_price_r, product_ageRestriction_r)) &*& true &*& result_customer_e == customer &*& result_product_e == product &*& result_witness_e == witness;
+        //@ ensures result != null &*& Order_OwnFields(result, ?result_witness_e, ?result_customer_e, ?result_product_e) &*& Order_FieldTypes(result_witness_e, result_customer_e, result_product_e) &*& result != null &*& (Customer_OwnFields(customer, customer_name_r, customer_age_r) &*& Customer_FieldTypes(customer_name_r, customer_age_r) &*& customer != null &*& AgedOver(customer_age_r, witness)) &*& (Product_OwnFields(product, product_title_r, product_price_r, product_ageRestriction_r) &*& Product_FieldTypes(product_title_r, product_price_r, product_ageRestriction_r) &*& product != null &*& AllowedFor(product_ageRestriction_r, witness)) &*& true &*& result_customer_e == customer &*& result_product_e == product &*& result_witness_e == witness;
     {}
 
     public int __getPrice_restorePermissions()

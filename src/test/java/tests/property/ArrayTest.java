@@ -26,7 +26,7 @@ public class ArrayTest extends PropertyCheckerTest {
     public ArrayTest(List<File> testFiles) {
         super(
                 testFiles,
-                "",
+                "tests/property/lattice_simple",
                 "tests/property/ArrayTest/");
     }
 

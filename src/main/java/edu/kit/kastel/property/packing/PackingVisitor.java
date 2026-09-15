@@ -641,12 +641,19 @@ public class PackingVisitor
             // For now, we allow accessing undependable and unique arrays as an estimation.
             ArrayAccessTree arrayAccess = (ArrayAccessTree) varTree;
             ExpressionTree arrayExpr = arrayAccess.getExpression();
-            if (TreeUtils.isFieldAccess(arrayExpr) && PackingAnnotatedTypeFactory.isDependableField(arrayExpr)) {
+            if (TreeUtils.isFieldAccess(arrayExpr)) {
                 ExclusivityAnnotatedTypeFactory exclFactory = getChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
                 AnnotatedTypeMirror exclType = exclFactory.getAnnotatedType(arrayExpr);
                 if (!exclType.hasEffectiveAnnotation(Unique.class)) {
                     checker.reportError(varTree, "initialization.write.aliased.array");
                     return false;
+                }
+                if (PackingAnnotatedTypeFactory.isDependableField(arrayExpr)) {
+                    AnnotatedTypeMirror xType = atypeFactory.getReceiverType(arrayExpr);
+                    if (xType == null || atypeFactory.isUnknownInitialization(xType) || atypeFactory.isInitializedForFrame(xType, TreeInfo.symbol((JCTree) arrayExpr).owner.type)) {
+                        checker.reportError(varTree, "initialization.write.committed.dependable.array", varTree);
+                        return false;
+                    }
                 }
             }
         }

@@ -66,6 +66,7 @@ public final class LatticeStore extends PackingClientStore<LatticeValue, Lattice
 
 	@Override
 	protected void removeConflicting(ArrayAccess arrayAccess, @Nullable LatticeValue val) {
+		clearValue(arrayAccess.getArray());
 		clearDependents(arrayAccess.getArray());
 	}
 

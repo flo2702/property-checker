@@ -635,6 +635,23 @@ public class PackingVisitor
 
     @Override
     protected boolean commonAssignmentCheck(Tree varTree, ExpressionTree valueExp, @CompilerMessageKey String errorKey, Object... extraArgs) {
+        if (varTree.getKind() == Tree.Kind.ARRAY_ACCESS) {
+            // TODO The right thing to do would be to treat an array access like a field access and allow (un-)packing
+            // arrays.
+            // For now, we allow accessing undependable and unique arrays as an estimation.
+            ArrayAccessTree arrayAccess = (ArrayAccessTree) varTree;
+            ExpressionTree arrayExpr = arrayAccess.getExpression();
+            if (TreeUtils.isFieldAccess(arrayExpr) && PackingAnnotatedTypeFactory.isDependableField(arrayExpr)) {
+                ExclusivityAnnotatedTypeFactory exclFactory = getChecker().getTypeFactoryOfSubcheckerOrNull(ExclusivityChecker.class);
+                AnnotatedTypeMirror exclType = exclFactory.getAnnotatedType(arrayExpr);
+                if (!exclType.hasEffectiveAnnotation(Unique.class)) {
+                    checker.reportError(varTree, "initialization.write.aliased.array");
+                    return false;
+                }
+            }
+        }
+
+
         // field write of the form x.f = y
         if (TreeUtils.isFieldAccess(varTree)) {
             // cast is safe: a field access can only be an IdentifierTree or MemberSelectTree

@@ -92,6 +92,7 @@ public abstract class PackingClientAnnotatedTypeFactory<
     }
 
     public abstract AnnotationMirror getDefaultPrimitiveQualifier();
+    public abstract AnnotationMirror getDefaultArrayCreationQualifier();
     public abstract AnnotationMirror getDefaultStringQualifier();
 
     @Override
@@ -140,6 +141,8 @@ public abstract class PackingClientAnnotatedTypeFactory<
                             // We already dealt with primitives and null, so node must be a String
                             return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultStringQualifier()), node.getType());
                         }
+                    } else if (node instanceof ArrayCreationNode) {
+                        return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultArrayCreationQualifier()), node.getType());
                     } else if (node instanceof MethodInvocationNode) {
                         return store.getValue((MethodInvocationNode) node);
                     } else if (node instanceof FieldAccessNode) {

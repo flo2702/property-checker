@@ -156,6 +156,11 @@ public final class LatticeAnnotatedTypeFactory
     }
 
     @Override
+    public AnnotationMirror getDefaultArrayCreationQualifier() {
+        return getTop();
+    }
+
+    @Override
     public AnnotationMirror getDefaultStringQualifier() {
         return getTop();
     }

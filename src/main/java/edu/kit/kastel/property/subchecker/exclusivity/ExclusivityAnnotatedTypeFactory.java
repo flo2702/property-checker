@@ -51,6 +51,11 @@ public final class ExclusivityAnnotatedTypeFactory
     }
 
     @Override
+    public AnnotationMirror getDefaultArrayCreationQualifier() {
+        return UNIQUE;
+    }
+
+    @Override
     public AnnotationMirror getDefaultStringQualifier() {
         return MAYBE_ALIASED;
     }
@@ -122,6 +127,8 @@ public final class ExclusivityAnnotatedTypeFactory
                                 || node instanceof BinaryOperationNode
                                 || node instanceof UnaryOperationNode) {
                             return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultPrimitiveQualifier()), node.getType());
+                        } else if (node instanceof ArrayCreationNode) {
+                            return analysis.createAbstractValue(AnnotationMirrorSet.singleton(getDefaultArrayCreationQualifier()), node.getType());
                         } else if (node instanceof MethodInvocationNode) {
                             return store.getValue((MethodInvocationNode) node);
                         } else if (node instanceof FieldAccessNode) {

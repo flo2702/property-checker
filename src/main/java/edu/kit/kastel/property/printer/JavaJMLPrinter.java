@@ -413,7 +413,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             } else if (isInterface(enclClass)) {
                 printTrampoline(tree, false);
             }
-            
+
             enclMethodIsHelper = prevEnclMethodIsHelper;
         } catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -275,7 +275,40 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             }
 
             JCMethodDecl prevEnclMethod = enclMethod;
+            boolean prevEnclMethodIsHelper = enclMethodIsHelper;
             enclMethod = tree;
+            enclMethodIsHelper = false;
+
+            Optional<LatticeVisitor.Result> invResult = results.stream().filter(wt -> wt.getLattice().getIdent().equals("inv")).findFirst();
+            if (isConstructor(tree)) {
+                if (!invResult.isPresent()) {
+                    enclMethodIsHelper = true;
+                } else {
+                    LatticeVisitor.Result res = invResult.get();
+                    GenericAnnotatedTypeFactory<?,?,?,?> factory = res.getTypeFactory();
+                    AnnotatedTypeMirror receiverType = factory.getMethodReturnType(tree);
+                    if (AnnotationUtils.areSame(receiverType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                        enclMethodIsHelper = true;
+                    }
+                }
+            } else {
+                if (!invResult.isPresent()) {
+                    enclMethodIsHelper = true;
+                } else {
+                    LatticeVisitor.Result res = invResult.get();
+                    GenericAnnotatedTypeFactory<?, ?, ?, ?> factory = res.getTypeFactory();
+                    AnnotatedExecutableType method = res.getTypeFactory().getAnnotatedType(tree);
+                    List<AnnotationMirror> methodOutputTypes = res.getMethodOutputTypes(tree);
+                    AnnotatedTypeMirror receiverInType = method.getReceiverType();
+                    AnnotationMirror receiverOutType = methodOutputTypes.get(0);
+                    if (receiverInType != null && AnnotationUtils.areSame(receiverInType.getEffectiveAnnotationInHierarchy(getTop(factory)), getTop(factory))) {
+                        enclMethodIsHelper = true;
+                    }
+                    if (receiverOutType != null && AnnotationUtils.areSame(receiverOutType, getTop(factory))) {
+                        enclMethodIsHelper = true;
+                    }
+                }
+            }
 
             JMLContract jmlContract = contractForMethod(tree, false);
             printlnAligned(jmlContract.toString());
@@ -284,7 +317,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             printExpr(tree.mods);
 
             if (isConstructor(tree)) {
-                if (!results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))) {
+                if (enclMethodIsHelper) {
                     print("/*@helper@*/ ");
                 }
                 print(enclClass != null ? enclClass.sym.getSimpleName() : tree.name);
@@ -293,7 +326,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                 if (k != TypeKind.VOID && !k.isPrimitive()) {
                     print("/*@nullable@*/ ");
                 }
-                if (!results.stream().anyMatch(wt -> wt.getLattice().getIdent().equals("inv"))) {
+                if (enclMethodIsHelper) {
                     print("/*@helper@*/ ");
                 }
                 if (tree.restype.type instanceof Type.TypeVar && !propertyFactory.getChecker().shouldKeepGenerics()) {
@@ -380,6 +413,8 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             } else if (isInterface(enclClass)) {
                 printTrampoline(tree, false);
             }
+            
+            enclMethodIsHelper = prevEnclMethodIsHelper;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -475,7 +510,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                 PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(requiredReceiverType);
                 PropertyAnnotationType pat = pa.getAnnotationType();
 
-                if (!pat.isTrivial() && !pat.isInv()) {
+                if (!pat.isTrivial() && (!pat.isInv() || enclMethodIsHelper)) {
                     if (!trampoline) {
                         jmlContract.addClause(new Condition(ConditionType.ASSERTION, ConditionLocation.PRECONDITION, pa, "this"));
                     } else {
@@ -521,7 +556,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
                 PropertyAnnotation pa = lattice.getEffectivePropertyAnnotation(receiverType);
                 PropertyAnnotationType pat = pa.getAnnotationType();
-                if (!pat.isTrivial() && !pat.isInv()) {
+                if (!pat.isTrivial() && (!pat.isInv() || enclMethodIsHelper)) {
                     jmlContract.addClause(new Condition(wt || trampoline, ConditionLocation.POSTCONDITION, pa, "this"));
                 }
                 if (!trampoline) {
@@ -623,7 +658,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                     if (paramOutputType != null && !AnnotationUtils.areSame(paramOutputType, getTop(factory))) {
                         PropertyAnnotation pa = lattice.getPropertyAnnotation(paramOutputType);
                         PropertyAnnotationType pat = pa.getAnnotationType();
-                        if (!pat.isTrivial() && !pat.isInv()) {
+                        if (!pat.isTrivial() && (!pat.isInv() || enclMethodIsHelper)) {
                             jmlContract.addClause(
                                     new Condition(
                                             wt || trampoline,
@@ -682,7 +717,11 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             }
         } else {
             if (isConstructor(tree)) {
-                jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result) && \\invariant_for(\\result);");
+                if (enclMethodIsHelper) {
+                    jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result);");
+                } else {
+                    jmlContract.addClause("ensures \\result != null && \\fresh(\\result) && \\invariant_free_for(\\result) && \\invariant_for(\\result);");
+                }
             } else if (!ElementUtils.isStatic(element)){
                 jmlContract.addClause("ensures \\invariant_free_for(this);");
             }
@@ -904,7 +943,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
                 if (!ElementUtils.isStatic(invokedMethod.getElement())) {
                     PropertyAnnotationType pat = wellTypedness.getLattice().getEffectivePropertyAnnotation(methodType.getReceiverType()).getAnnotationType();
-                    if (!pat.isTrivial() && !pat.isInv()) {
+                    if (!pat.isTrivial() && (!pat.isInv() || enclMethodIsHelper)) {
                     	if (wellTypedness.getIllTypedMethodReceivers().contains(tree) || TRANSLATION_RAW) {
                     		booleanArgs.add("false");
                     		++methodCallPreconditions;
@@ -1192,7 +1231,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
 
             if (requiredReceiverType != null) {
                 PropertyAnnotationType pat = lattice.getEffectivePropertyAnnotation(requiredReceiverType).getAnnotationType();
-                if (!pat.isTrivial() && !pat.isInv()) {
+                if (!pat.isTrivial() && (!pat.isInv() || enclMethodIsHelper)) {
                     paramStr.add(String.format("boolean %s", trampolineBooleanParamName("this", wellTypedness)));
                 }
             }

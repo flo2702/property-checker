@@ -63,6 +63,7 @@ public abstract class PropertyCheckerPrettyPrinter extends PrettyPrinter {
     protected int tempVarNum = 0;
     protected JCTree.JCClassDecl enclClass;
     protected JCTree.JCMethodDecl enclMethod;
+    protected boolean enclMethodIsHelper;
     protected boolean enclBlock = false;
 
     public PropertyCheckerPrettyPrinter(

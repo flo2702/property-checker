@@ -26,10 +26,7 @@ import com.sun.tools.javac.tree.JCTree;
 import com.sun.tools.javac.tree.JCTree.*;
 import com.sun.tools.javac.tree.TreeInfo;
 import edu.kit.kastel.property.checker.PropertyChecker;
-import edu.kit.kastel.property.checker.qual.JMLClause;
-import edu.kit.kastel.property.checker.qual.JMLClauseTranslationOnly;
-import edu.kit.kastel.property.checker.qual.JMLClauses;
-import edu.kit.kastel.property.checker.qual.JMLClausesTranslationOnly;
+import edu.kit.kastel.property.checker.qual.*;
 import edu.kit.kastel.property.config.Config;
 import edu.kit.kastel.property.lattice.Checkable;
 import edu.kit.kastel.property.lattice.Lattice;
@@ -61,6 +58,7 @@ import javax.lang.model.util.ElementFilter;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -743,6 +741,11 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             }
         }
 
+        getJMLContractValues(element).forEach(jmlContract::addAlsoContract);
+        if (TRANSLATION_RAW) {
+            getJMLContractValuesTranslationOnly(element).forEach(jmlContract::addAlsoContract);
+        }
+
         return jmlContract;
     }
 
@@ -1308,41 +1311,39 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
     }
 
     @SuppressWarnings("unchecked")
-    protected List<String> getJMLClauseValues(Element element) {
-        AnnotationMirror jmlClauses = propertyFactory.getDeclAnnotation(element, JMLClauses.class);
-        AnnotationMirror jmlClause = propertyFactory.getDeclAnnotation(element, JMLClause.class);
-        
-        if (jmlClauses == null && jmlClause == null) {
+    protected List<String> getClauseAnnoValues(
+            Element element, Class<? extends Annotation> listAnno, Class<? extends Annotation> singleAnno) {
+        AnnotationMirror listMirror = propertyFactory.getDeclAnnotation(element, listAnno);
+        AnnotationMirror singleMirror = propertyFactory.getDeclAnnotation(element, singleAnno);
+
+        if (listMirror == null && singleMirror == null) {
             return Collections.emptyList();
-        } else if (jmlClauses != null) {
-            return (List<String>) AnnotationUtils.getElementValue(jmlClauses, "value", List.class, true).stream()
-                .map(o -> {
-                    String s = ((Attribute.Compound) o).values.head.snd.toString();
-                    return s.substring(1, s.length() - 1).replace("\\\\", "\\");
-                })
-                .collect(Collectors.toList());
+        } else if (listMirror != null) {
+            return (List<String>) AnnotationUtils.getElementValue(listMirror, "value", List.class, true).stream()
+                    .map(o -> {
+                        String s = ((Attribute.Compound) o).values.head.snd.toString();
+                        return s.substring(1, s.length() - 1).replace("\\\\", "\\");
+                    })
+                    .collect(Collectors.toList());
         } else {
-            return Collections.singletonList(AnnotationUtils.getElementValue(jmlClause, "value", String.class, true));
+            return Collections.singletonList(AnnotationUtils.getElementValue(singleMirror, "value", String.class, true));
         }
     }
-    
-    @SuppressWarnings("unchecked")
+
+    protected List<String> getJMLClauseValues(Element element) {
+        return getClauseAnnoValues(element, JMLClauses.class, JMLClause.class);
+    }
+
     protected List<String> getJMLClauseValuesTranslationOnly(Element element) {
-        AnnotationMirror jmlClauses = propertyFactory.getDeclAnnotation(element, JMLClausesTranslationOnly.class);
-        AnnotationMirror jmlClause = propertyFactory.getDeclAnnotation(element, JMLClauseTranslationOnly.class);
-        
-        if (jmlClauses == null && jmlClause == null) {
-            return Collections.emptyList();
-        } else if (jmlClauses != null) {
-            return (List<String>) AnnotationUtils.getElementValue(jmlClauses, "value", List.class, true).stream()
-                .map(o -> {
-                    String s = ((Attribute.Compound) o).values.head.snd.toString();
-                    return s.substring(1, s.length() - 1).replace("\\\\", "\\");
-                })
-                .collect(Collectors.toList());
-        } else {
-            return Collections.singletonList(AnnotationUtils.getElementValue(jmlClause, "value", String.class, true));
-        }
+        return getClauseAnnoValues(element, JMLClausesTranslationOnly.class, JMLClauseTranslationOnly.class);
+    }
+
+    protected List<String> getJMLContractValues(Element element) {
+        return getClauseAnnoValues(element, JMLContracts.class, edu.kit.kastel.property.checker.qual.JMLContract.class);
+    }
+
+    protected List<String> getJMLContractValuesTranslationOnly(Element element) {
+        return getClauseAnnoValues(element, JMLContractsTranslationOnly.class, JMLContractTranslationOnly.class);
     }
 
     protected String getPackedCondition(AnnotationMirror packingType, String varName) {
@@ -1595,6 +1596,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
         private List<String> ensuresClauses = new ArrayList<>();
         private List<String> ensuresFreeClauses = new ArrayList<>();
         private List<String> otherClauses = new ArrayList<>();
+        private List<String> alsoContracts = new ArrayList<>();
         
         public JMLContract(EnumSet<Flags.Flag> flags) {
             this.flags = flags;
@@ -1651,6 +1653,10 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
                 break;
             }
         }
+
+        public void addAlsoContract(String alsoContract) {
+            alsoContracts.add(alsoContract);
+        }
         
         @Override
         public String toString() {
@@ -1662,6 +1668,7 @@ public class JavaJMLPrinter extends PropertyCheckerPrettyPrinter {
             ensuresClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
             ensuresFreeClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
             otherClauses.forEach(c -> sb.append(String.format("  @ %s\n", c)));
+            alsoContracts.forEach(c -> sb.append(String.format("  @\n  @ also \n  @ %s\n", c.replace("\n", "\n  @ "))));
 
             sb.append("  @*/");
             return sb.toString();

@@ -17,22 +17,13 @@
 package edu.kit.kastel.property.checker.qual;
 
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * When on a method: Adds a JML clause to the method contract during the JML translation.
- * All clauses added by {@code JMLClause} are added to the method contract that results from translating the type
- *   information to JML. To add a whole other contract in addition to that one, use {@link JMLContract}.
- *
- * When on a class: Adds a JML clause to the class body during the JML translation.
- */
-@Repeatable(JMLClauses.class)
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.TYPE})
-public @interface JMLClause {
+public @interface JMLContractsTranslationOnly {
 
-    String value();
+    JMLContractTranslationOnly[] value() default {};
 }

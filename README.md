@@ -17,6 +17,8 @@ For more documentation on the theory behind the Property Checker, see the follow
 
 [2] Florian Lanzinger, Joshua Bachmeier, Mattias Ulbrich, and Werner Dietl (2023). Scalable and Precise Refinement Types for Imperative Languages. iFM 2023. https://dx.doi.org/10.1007/978-3-031-47705-8_20
 
+[3] Florian Lanzinger, Joshua Bachmeier, Mattias Ulbrich, and Werner Dietl (2026). Kukicha – Efficient Yet Powerful Refinement Types for Object-Oriented Languages. Form. Asp. Comput.. https://doi.org/10.1145/3849492
+
 # Tests
 
 See the folder `tests` for examples.
